@@ -12,25 +12,34 @@ function useProvider(): UseProvider {
   const wallet = useWallet();
 
   const isRequestingAccounts = ref(false);
+  const accountRequestId = ref<string | number>('');
 
   function allow(): void {
     const addresses = wallet.account.value
       ? [wallet.account.value.address]
       : [];
-    chrome.runtime.sendMessage({ type: 'ALLOW_CONNECTION', data: addresses });
+    chrome.runtime.sendMessage({
+      id: accountRequestId.value,
+      type: 'ALLOW_CONNECTION',
+      data: addresses,
+    });
     isRequestingAccounts.value = false;
   }
 
   function deny(): void {
-    chrome.runtime.sendMessage({ type: 'DENY_CONNECTION' });
+    chrome.runtime.sendMessage({
+      id: accountRequestId.value,
+      type: 'DENY_CONNECTION',
+    });
     isRequestingAccounts.value = false;
   }
 
   onMounted(async () => {
     document.addEventListener('DOMContentLoaded', () => {
       chrome.runtime.onMessage.addListener((message) => {
-        if (message.type === 'REQUEST_CONNECTION') {
+        if (message.type === 'REQUEST_ACCOUNTS') {
           isRequestingAccounts.value = true;
+          accountRequestId.value = message.id;
         }
       });
     });
@@ -38,6 +47,7 @@ function useProvider(): UseProvider {
       type: 'GET_PROVIDER_STATE',
     });
     isRequestingAccounts.value = response.isRequestingAccounts;
+    accountRequestId.value = response.accountRequestId;
   });
 
   return { isRequestingAccounts, allow, deny };

@@ -16,8 +16,9 @@ function setupProviderConnection(port: Runtime.Port): void {
     const data = message as JsonRpcRequest<JsonRpcParams>;
 
     if (data.method === 'eth_requestAccounts') {
+      const id = data.id || 'ID';
       openPopup();
-      request(data.id, (response) => {
+      request(id, (response) => {
         if (response.status === true) {
           port.postMessage({
             jsonrpc: '2.0',

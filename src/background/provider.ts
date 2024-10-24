@@ -15,6 +15,7 @@ type AccountRequestResponse =
 
 interface ProviderState {
   isRequestingAccounts: boolean;
+  accountRequestId: string | number | null;
 }
 
 interface WalletState {
@@ -25,13 +26,17 @@ const storage = new Storage();
 
 const providerState: ProviderState = {
   isRequestingAccounts: false,
+  accountRequestId: null,
 };
 
 const walletState: WalletState = {
   mnemonic: null,
 };
 
-let lastCallback: (value: AccountRequestResponse) => void;
+const callbacks: Record<
+  string | number,
+  (value: AccountRequestResponse) => void
+> = {};
 
 init();
 
@@ -42,37 +47,45 @@ async function init(): Promise<void> {
 }
 
 async function request(
-  id: string | number | null,
+  id: string | number,
   callback: (value: AccountRequestResponse) => void,
 ): Promise<void> {
-  lastCallback = callback;
+  callbacks[id] = callback;
   providerState.isRequestingAccounts = true;
+  providerState.accountRequestId = id;
   chrome.runtime.sendMessage({
     type: 'REQUEST_ACCOUNTS',
+    id,
   });
 }
 
-function allowConnection(addresses: Address[]): void {
+function allowConnection(id: string | number, addresses: Address[]): void {
   providerState.isRequestingAccounts = false;
-  lastCallback({
-    status: true,
-    result: addresses,
-  });
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: true,
+      result: addresses,
+    });
+  }
 }
 
-function denyConnection(): void {
+function denyConnection(id: string | number): void {
   providerState.isRequestingAccounts = false;
-  lastCallback({
-    status: false,
-    error: new Error('User denied connection request'),
-  });
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: false,
+      error: new Error('User denied connection request'),
+    });
+  }
 }
 
 chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
   if (request.type === 'ALLOW_CONNECTION') {
-    allowConnection(getAddresses());
+    allowConnection(request.id, getAddresses());
   } else if (request.type === 'DENY_CONNECTION') {
-    denyConnection();
+    denyConnection(request.id);
   } else if (request.type === 'GET_PROVIDER_STATE') {
     sendResponse(providerState);
   } else if (request.type === 'GET_WALLET_STATE') {
