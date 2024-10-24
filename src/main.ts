@@ -4,9 +4,9 @@ import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import { createWebHashHistory, createRouter } from 'vue-router';
 
-import AccountRequest from '@/pages/AccountRequest.vue';
 import Home from '@/pages/Home.vue';
 import Import from '@/pages/Import.vue';
+import AccountRequest from '@/pages/requests/Account.vue';
 import { config } from '@/wagmi';
 
 import App from './App.vue';
