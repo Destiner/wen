@@ -37,7 +37,7 @@
     "eventemitter3": "^5.0.1",
     "mipd": "^0.0.7",
     "pinia": "^2.2.4",
-    "viem": "2.x",
+    "viem": "^2.21.34",
     "vue": "^3.5.3",
     "vue-router": "^4.4.3",
     "webextension-polyfill": "^0.12.0"
