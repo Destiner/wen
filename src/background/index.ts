@@ -15,6 +15,17 @@ function setupProviderConnection(port: Runtime.Port): void {
   port.onMessage.addListener(async (message: unknown): Promise<void> => {
     const data = message as JsonRpcRequest<JsonRpcParams>;
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    if (data.data === 'ping') {
+      return;
+    }
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    if (data.data === '{"type":"ping"}') {
+      return;
+    }
+
     const id = data.id || 'ID';
     if (data.method === 'eth_chainId') {
       const chainId = getChainId();
