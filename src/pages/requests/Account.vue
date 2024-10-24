@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import { useProvider } from '@/composables/useProvider';
 
-const { allow: providerAllow, deny: providerDeny } = useProvider();
+const { allowAccountRequest: providerAllow, denyAccountRequest: providerDeny } =
+  useProvider();
 
 function allow(): void {
   providerAllow();

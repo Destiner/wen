@@ -94,9 +94,9 @@ function denyConnection(id: string | number): void {
 }
 
 chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
-  if (request.type === 'ALLOW_CONNECTION') {
+  if (request.type === 'ALLOW_ACCOUNT_REQUEST') {
     allowConnection(request.id, getAddresses());
-  } else if (request.type === 'DENY_CONNECTION') {
+  } else if (request.type === 'DENY_ACCOUNT_REQUEST') {
     denyConnection(request.id);
   } else if (request.type === 'GET_PROVIDER_STATE') {
     sendResponse(providerState);

@@ -4,8 +4,8 @@ import { useWallet } from './useWallet';
 
 interface UseProvider {
   isRequestingAccounts: Ref<boolean>;
-  allow: () => void;
-  deny: () => void;
+  allowAccountRequest: () => void;
+  denyAccountRequest: () => void;
 }
 
 function useProvider(): UseProvider {
@@ -14,22 +14,22 @@ function useProvider(): UseProvider {
   const isRequestingAccounts = ref(false);
   const accountRequestId = ref<string | number>('');
 
-  function allow(): void {
+  function allowAccountRequest(): void {
     const addresses = wallet.account.value
       ? [wallet.account.value.address]
       : [];
     chrome.runtime.sendMessage({
       id: accountRequestId.value,
-      type: 'ALLOW_CONNECTION',
+      type: 'ALLOW_ACCOUNT_REQUEST',
       data: addresses,
     });
     isRequestingAccounts.value = false;
   }
 
-  function deny(): void {
+  function denyAccountRequest(): void {
     chrome.runtime.sendMessage({
       id: accountRequestId.value,
-      type: 'DENY_CONNECTION',
+      type: 'DENY_ACCOUNT_REQUEST',
     });
     isRequestingAccounts.value = false;
   }
@@ -50,7 +50,7 @@ function useProvider(): UseProvider {
     accountRequestId.value = response.accountRequestId;
   });
 
-  return { isRequestingAccounts, allow, deny };
+  return { isRequestingAccounts, allowAccountRequest, denyAccountRequest };
 }
 
 // eslint-disable-next-line import-x/prefer-default-export
