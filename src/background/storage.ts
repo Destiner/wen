@@ -48,7 +48,9 @@ class Storage {
 
       request.onerror = (): void => reject(request.error);
       request.onsuccess = (): void => {
-        const value = request.result || { value: { mnemonic: null } };
+        const value = request.result
+          ? request.result.value
+          : { mnemonic: null };
         resolve(value);
       };
     });
