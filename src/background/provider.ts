@@ -1,23 +1,30 @@
-import { Address } from 'viem';
+import { Address, Hex } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import { odysseyTestnet } from 'viem/chains';
 
 import { Storage } from './storage';
 
-type AccountRequestResponse =
+type Response<T> =
   | {
       status: true;
-      result: Address[];
+      result: T;
     }
   | {
       status: false;
       error: Error;
     };
 
+type AccountRequestResponse = Response<Address[]>;
+type PersonalSignResponse = Response<Hex>;
+
 interface ProviderState {
+  accountRequestId: string | number | null;
+
   allowedAccounts: Address[];
   isRequestingAccounts: boolean;
-  accountRequestId: string | number | null;
+
+  isPersonalSigning: boolean;
+  personalSignedMessage: Hex | null;
 }
 
 interface WalletState {
@@ -27,19 +34,21 @@ interface WalletState {
 const storage = new Storage();
 
 const providerState: ProviderState = {
-  allowedAccounts: [],
-  isRequestingAccounts: false,
   accountRequestId: null,
+
+  isRequestingAccounts: false,
+  allowedAccounts: [],
+
+  isPersonalSigning: false,
+  personalSignedMessage: null,
 };
 
 const walletState: WalletState = {
   mnemonic: null,
 };
 
-const callbacks: Record<
-  string | number,
-  (value: AccountRequestResponse) => void
-> = {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const callbacks: Record<string | number, (value: Response<any>) => void> = {};
 
 init();
 
@@ -70,7 +79,23 @@ async function requestAccounts(
   });
 }
 
-function allowConnection(id: string | number, addresses: Address[]): void {
+async function personalSign(
+  id: string | number,
+  message: Hex,
+  address: Address,
+  callback: (value: PersonalSignResponse) => void,
+): Promise<void> {
+  callbacks[id] = callback;
+  providerState.isPersonalSigning = true;
+  providerState.personalSignedMessage = message;
+  providerState.accountRequestId = id;
+  chrome.runtime.sendMessage({
+    type: 'PERSONAL_SIGN',
+    id,
+  });
+}
+
+function allowAccountRequest(id: string | number, addresses: Address[]): void {
   providerState.isRequestingAccounts = false;
   providerState.allowedAccounts = addresses;
   const callback = callbacks[id];
@@ -82,7 +107,7 @@ function allowConnection(id: string | number, addresses: Address[]): void {
   }
 }
 
-function denyConnection(id: string | number): void {
+function denyAccountRequest(id: string | number): void {
   providerState.isRequestingAccounts = false;
   const callback = callbacks[id];
   if (callback) {
@@ -93,11 +118,43 @@ function denyConnection(id: string | number): void {
   }
 }
 
+async function allowPersonalSign(id: string | number): Promise<void> {
+  if (!providerState.personalSignedMessage) {
+    return;
+  }
+  const signature = await getPersonalSignature(
+    providerState.personalSignedMessage,
+  );
+  providerState.isPersonalSigning = false;
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: true,
+      result: signature,
+    });
+  }
+}
+
+function denyPersonalSign(id: string | number): void {
+  providerState.isPersonalSigning = false;
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: false,
+      error: new Error('User denied personal sign request'),
+    });
+  }
+}
+
 chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
   if (request.type === 'ALLOW_ACCOUNT_REQUEST') {
-    allowConnection(request.id, getAddresses());
+    allowAccountRequest(request.id, getAddresses());
   } else if (request.type === 'DENY_ACCOUNT_REQUEST') {
-    denyConnection(request.id);
+    denyAccountRequest(request.id);
+  } else if (request.type === 'ALLOW_PERSONAL_SIGN') {
+    allowPersonalSign(request.id);
+  } else if (request.type === 'DENY_PERSONAL_SIGN') {
+    denyPersonalSign(request.id);
   } else if (request.type === 'GET_PROVIDER_STATE') {
     sendResponse(providerState);
   } else if (request.type === 'GET_WALLET_STATE') {
@@ -116,4 +173,16 @@ function getAddresses(): Address[] {
   return [account.address];
 }
 
-export { getChainId, getAccounts, requestAccounts };
+async function getPersonalSignature(message: Hex): Promise<Hex | null> {
+  if (!walletState.mnemonic) {
+    return null;
+  }
+  const account = mnemonicToAccount(walletState.mnemonic);
+  return await account.signMessage({
+    message: {
+      raw: message,
+    },
+  });
+}
+
+export { getChainId, getAccounts, requestAccounts, personalSign };

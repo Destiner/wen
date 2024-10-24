@@ -1,7 +1,13 @@
 import type { JsonRpcParams, JsonRpcRequest } from '@metamask/utils';
+import { Address, Hex } from 'viem';
 import { type Runtime, runtime } from 'webextension-polyfill';
 
-import { getChainId, getAccounts, requestAccounts } from './provider';
+import {
+  getChainId,
+  getAccounts,
+  requestAccounts,
+  personalSign,
+} from './provider';
 
 init();
 
@@ -46,6 +52,27 @@ function setupProviderConnection(port: Runtime.Port): void {
     if (data.method === 'eth_requestAccounts') {
       openPopup();
       requestAccounts(id, (response) => {
+        if (response.status === true) {
+          port.postMessage({
+            jsonrpc: '2.0',
+            id: data.id,
+            result: response.result,
+          });
+        } else {
+          port.postMessage({
+            jsonrpc: '2.0',
+            id: data.id,
+            error: response.error,
+          });
+        }
+      });
+    }
+    if (data.method === 'personal_sign') {
+      const params = data.params as [Address, Hex];
+      const message = params[0] as Hex;
+      const address = params[1] as Address;
+      openPopup();
+      personalSign(id, message, address, (response) => {
         if (response.status === true) {
           port.postMessage({
             jsonrpc: '2.0',
