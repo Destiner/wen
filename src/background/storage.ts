@@ -47,7 +47,10 @@ class Storage {
       const request = store.get(KEY_PROVIDER);
 
       request.onerror = (): void => reject(request.error);
-      request.onsuccess = (): void => resolve(request.result.value);
+      request.onsuccess = (): void => {
+        const value = request.result || { value: { mnemonic: null } };
+        resolve(value);
+      };
     });
   }
 }
