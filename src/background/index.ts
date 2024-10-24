@@ -1,7 +1,7 @@
 import type { JsonRpcParams, JsonRpcRequest } from '@metamask/utils';
 import { type Runtime, runtime } from 'webextension-polyfill';
 
-import { request } from './provider';
+import { getAccounts, requestAccounts } from './provider';
 
 init();
 
@@ -15,10 +15,18 @@ function setupProviderConnection(port: Runtime.Port): void {
   port.onMessage.addListener(async (message: unknown): Promise<void> => {
     const data = message as JsonRpcRequest<JsonRpcParams>;
 
+    const id = data.id || 'ID';
+    if (data.method === 'eth_accounts') {
+      const accounts = await getAccounts();
+      port.postMessage({
+        jsonrpc: '2.0',
+        id: data.id,
+        result: accounts,
+      });
+    }
     if (data.method === 'eth_requestAccounts') {
-      const id = data.id || 'ID';
       openPopup();
-      request(id, (response) => {
+      requestAccounts(id, (response) => {
         if (response.status === true) {
           port.postMessage({
             jsonrpc: '2.0',

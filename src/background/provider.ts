@@ -14,6 +14,7 @@ type AccountRequestResponse =
     };
 
 interface ProviderState {
+  allowedAccounts: Address[];
   isRequestingAccounts: boolean;
   accountRequestId: string | number | null;
 }
@@ -25,6 +26,7 @@ interface WalletState {
 const storage = new Storage();
 
 const providerState: ProviderState = {
+  allowedAccounts: [],
   isRequestingAccounts: false,
   accountRequestId: null,
 };
@@ -46,7 +48,11 @@ async function init(): Promise<void> {
   walletState.mnemonic = data.mnemonic;
 }
 
-async function request(
+async function getAccounts(): Promise<Address[]> {
+  return providerState.allowedAccounts;
+}
+
+async function requestAccounts(
   id: string | number,
   callback: (value: AccountRequestResponse) => void,
 ): Promise<void> {
@@ -61,6 +67,7 @@ async function request(
 
 function allowConnection(id: string | number, addresses: Address[]): void {
   providerState.isRequestingAccounts = false;
+  providerState.allowedAccounts = addresses;
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -104,5 +111,4 @@ function getAddresses(): Address[] {
   return [account.address];
 }
 
-// eslint-disable-next-line import-x/prefer-default-export
-export { request };
+export { getAccounts, requestAccounts };
