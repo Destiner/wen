@@ -1,5 +1,6 @@
 import { Address } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
+import { odysseyTestnet } from 'viem/chains';
 
 import { Storage } from './storage';
 
@@ -46,6 +47,10 @@ async function init(): Promise<void> {
   await storage.init();
   const data = await storage.getProviderData();
   walletState.mnemonic = data.mnemonic;
+}
+
+function getChainId(): number {
+  return odysseyTestnet.id;
 }
 
 async function getAccounts(): Promise<Address[]> {
@@ -111,4 +116,4 @@ function getAddresses(): Address[] {
   return [account.address];
 }
 
-export { getAccounts, requestAccounts };
+export { getChainId, getAccounts, requestAccounts };
