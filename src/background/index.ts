@@ -1,8 +1,9 @@
 import type { JsonRpcParams, JsonRpcRequest } from '@metamask/utils';
-import { Address, Hex, SendTransactionParameters } from 'viem';
+import { Address, Hex } from 'viem';
 import { type Runtime, runtime } from 'webextension-polyfill';
 
 import {
+  type SendTransactionRequest,
   getChainId,
   getAccounts,
   requestAccounts,
@@ -92,7 +93,7 @@ function setupProviderConnection(port: Runtime.Port): void {
     if (data.method === 'eth_sendTransaction') {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      const params = data.params as [SendTransactionParameters];
+      const params = data.params as [SendTransactionRequest];
       const transaction = params[0];
       openPopup();
       sendTransaction(id, transaction, (response) => {

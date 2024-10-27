@@ -1,14 +1,26 @@
 import {
   Address,
+  createPublicClient,
   createWalletClient,
   Hex,
   http,
-  SendTransactionParameters,
 } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import { odysseyTestnet } from 'viem/chains';
 
 import { Storage } from './storage';
+
+interface SendTransactionRequest {
+  to: Hex;
+  from: Hex;
+  gas?: Hex;
+  value?: Hex;
+  data: Hex;
+  gasPrice?: Hex;
+  maxPriorityFeePerGas?: Hex;
+  maxFeePerGas?: Hex;
+  nonce?: Hex;
+}
 
 type Response<T> =
   | {
@@ -33,7 +45,7 @@ interface ProviderState {
   personalSignedMessage: Hex | null;
 
   isSendingTransaction: boolean;
-  transaction: SendTransactionParameters | null;
+  transaction: SendTransactionRequest | null;
 }
 
 interface WalletState {
@@ -109,7 +121,7 @@ async function personalSign(
 
 async function sendTransaction(
   id: string | number,
-  transaction: SendTransactionParameters,
+  transaction: SendTransactionRequest,
   callback: (value: Response<Hex>) => void,
 ): Promise<void> {
   callbacks[id] = callback;
@@ -243,7 +255,7 @@ async function getPersonalSignature(message: Hex): Promise<Hex | null> {
 }
 
 async function submitTransaction(
-  transaction: SendTransactionParameters,
+  transaction: SendTransactionRequest,
 ): Promise<Hex | null> {
   if (!walletState.mnemonic) {
     return null;
@@ -254,8 +266,41 @@ async function submitTransaction(
     chain: odysseyTestnet,
     transport: http(),
   });
+
+  const publicClient = createPublicClient({
+    chain: odysseyTestnet,
+    transport: http(),
+  });
+  const value = BigInt(transaction.value || '0x0');
+
+  // Estimate gas limit if not provided
+  let gas = BigInt(transaction.gas || '0x0');
+  if (!gas) {
+    const gasLimit = await publicClient.estimateGas({
+      to: transaction.to,
+      data: transaction.data,
+      value,
+    });
+    gas = gasLimit;
+  }
+
+  // Estimate gas price if not provided
+  let maxFeePerGas = BigInt(transaction.gasPrice || '0x0');
+  let maxPriorityFeePerGas = BigInt(transaction.gasPrice || '0x0');
+  if (!maxFeePerGas || !maxPriorityFeePerGas) {
+    const feeValues = await publicClient.estimateFeesPerGas();
+    maxFeePerGas = feeValues.maxFeePerGas;
+    maxPriorityFeePerGas = feeValues.maxPriorityFeePerGas;
+  }
+
   return await walletClient.sendTransaction({
-    ...transaction,
+    chain: odysseyTestnet,
+    to: transaction.to,
+    data: transaction.data,
+    value,
+    gas,
+    maxFeePerGas,
+    maxPriorityFeePerGas,
   });
 }
 
@@ -266,3 +311,4 @@ export {
   personalSign,
   sendTransaction,
 };
+export type { SendTransactionRequest };
