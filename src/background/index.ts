@@ -1,5 +1,5 @@
 import type { JsonRpcParams, JsonRpcRequest } from '@metamask/utils';
-import { Address, Hex } from 'viem';
+import { Address, Hex, SendTransactionParameters } from 'viem';
 import { type Runtime, runtime } from 'webextension-polyfill';
 
 import {
@@ -7,6 +7,7 @@ import {
   getAccounts,
   requestAccounts,
   personalSign,
+  sendTransaction,
 } from './provider';
 
 init();
@@ -73,6 +74,28 @@ function setupProviderConnection(port: Runtime.Port): void {
       const address = params[1] as Address;
       openPopup();
       personalSign(id, message, address, (response) => {
+        if (response.status === true) {
+          port.postMessage({
+            jsonrpc: '2.0',
+            id: data.id,
+            result: response.result,
+          });
+        } else {
+          port.postMessage({
+            jsonrpc: '2.0',
+            id: data.id,
+            error: response.error,
+          });
+        }
+      });
+    }
+    if (data.method === 'eth_sendTransaction') {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const params = data.params as [SendTransactionParameters];
+      const transaction = params[0];
+      openPopup();
+      sendTransaction(id, transaction, (response) => {
         if (response.status === true) {
           port.postMessage({
             jsonrpc: '2.0',

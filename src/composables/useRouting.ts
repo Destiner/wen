@@ -16,6 +16,9 @@ function useRouting(): void {
   const isProviderPersonalSigning = computed(
     () => provider.isPersonalSigning.value,
   );
+  const isProviderSendingTransaction = computed(
+    () => provider.isSendingTransaction.value,
+  );
 
   watch(isProviderRequestingAccount, (value) => {
     if (!hasWalletMnemonic.value) {
@@ -39,6 +42,17 @@ function useRouting(): void {
     }
   });
 
+  watch(isProviderSendingTransaction, (value) => {
+    if (!hasWalletMnemonic.value) {
+      return;
+    }
+    if (value) {
+      router.push({ name: 'send-transaction' });
+    } else {
+      router.push({ name: 'home' });
+    }
+  });
+
   watch(
     hasWalletMnemonic,
     (value) => {
@@ -52,6 +66,10 @@ function useRouting(): void {
       }
       if (isProviderRequestingAccount.value) {
         router.push({ name: 'account-request' });
+        return;
+      }
+      if (isProviderSendingTransaction.value) {
+        router.push({ name: 'send-transaction' });
         return;
       }
       router.push({ name: 'home' });

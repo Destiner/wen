@@ -1,4 +1,10 @@
-import { Address, Hex } from 'viem';
+import {
+  Address,
+  createWalletClient,
+  Hex,
+  http,
+  SendTransactionParameters,
+} from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import { odysseyTestnet } from 'viem/chains';
 
@@ -25,6 +31,9 @@ interface ProviderState {
 
   isPersonalSigning: boolean;
   personalSignedMessage: Hex | null;
+
+  isSendingTransaction: boolean;
+  transaction: SendTransactionParameters | null;
 }
 
 interface WalletState {
@@ -41,6 +50,9 @@ const providerState: ProviderState = {
 
   isPersonalSigning: false,
   personalSignedMessage: null,
+
+  isSendingTransaction: false,
+  transaction: null,
 };
 
 const walletState: WalletState = {
@@ -95,6 +107,21 @@ async function personalSign(
   });
 }
 
+async function sendTransaction(
+  id: string | number,
+  transaction: SendTransactionParameters,
+  callback: (value: Response<Hex>) => void,
+): Promise<void> {
+  callbacks[id] = callback;
+  providerState.isSendingTransaction = true;
+  providerState.transaction = transaction;
+  providerState.accountRequestId = id;
+  chrome.runtime.sendMessage({
+    type: 'SEND_TRANSACTION',
+    id,
+  });
+}
+
 function allowAccountRequest(id: string | number, addresses: Address[]): void {
   providerState.isRequestingAccounts = false;
   providerState.allowedAccounts = addresses;
@@ -119,13 +146,13 @@ function denyAccountRequest(id: string | number): void {
 }
 
 async function allowPersonalSign(id: string | number): Promise<void> {
+  providerState.isPersonalSigning = false;
   if (!providerState.personalSignedMessage) {
     return;
   }
   const signature = await getPersonalSignature(
     providerState.personalSignedMessage,
   );
-  providerState.isPersonalSigning = false;
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -146,6 +173,32 @@ function denyPersonalSign(id: string | number): void {
   }
 }
 
+async function allowSendTransaction(id: string | number): Promise<void> {
+  providerState.isSendingTransaction = false;
+  if (!providerState.transaction) {
+    return;
+  }
+  const txHash = await submitTransaction(providerState.transaction);
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: true,
+      result: txHash,
+    });
+  }
+}
+
+function denySendTransaction(id: string | number): void {
+  providerState.isSendingTransaction = false;
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: false,
+      error: new Error('User denied transaction request'),
+    });
+  }
+}
+
 chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
   if (request.type === 'ALLOW_ACCOUNT_REQUEST') {
     allowAccountRequest(request.id, getAddresses());
@@ -155,6 +208,10 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
     allowPersonalSign(request.id);
   } else if (request.type === 'DENY_PERSONAL_SIGN') {
     denyPersonalSign(request.id);
+  } else if (request.type === 'ALLOW_SEND_TRANSACTION') {
+    allowSendTransaction(request.id);
+  } else if (request.type === 'DENY_SEND_TRANSACTION') {
+    denySendTransaction(request.id);
   } else if (request.type === 'GET_PROVIDER_STATE') {
     sendResponse(providerState);
   } else if (request.type === 'GET_WALLET_STATE') {
@@ -185,4 +242,27 @@ async function getPersonalSignature(message: Hex): Promise<Hex | null> {
   });
 }
 
-export { getChainId, getAccounts, requestAccounts, personalSign };
+async function submitTransaction(
+  transaction: SendTransactionParameters,
+): Promise<Hex | null> {
+  if (!walletState.mnemonic) {
+    return null;
+  }
+  const account = mnemonicToAccount(walletState.mnemonic);
+  const walletClient = createWalletClient({
+    account,
+    chain: odysseyTestnet,
+    transport: http(),
+  });
+  return await walletClient.sendTransaction({
+    ...transaction,
+  });
+}
+
+export {
+  getChainId,
+  getAccounts,
+  requestAccounts,
+  personalSign,
+  sendTransaction,
+};

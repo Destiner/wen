@@ -1,4 +1,4 @@
-import { Hex } from 'viem';
+import { Hex, Transaction } from 'viem';
 import { onMounted, Ref, ref } from 'vue';
 
 import { useWallet } from './useWallet';
@@ -12,6 +12,11 @@ interface UseProvider {
   personalSignedMessage: Ref<Hex | null>;
   allowPersonalSign: () => void;
   denyPersonalSign: () => void;
+
+  isSendingTransaction: Ref<boolean>;
+  transaction: Ref<Transaction | null>;
+  allowSendTransaction: () => void;
+  denySendTransaction: () => void;
 }
 
 function useProvider(): UseProvider {
@@ -57,6 +62,24 @@ function useProvider(): UseProvider {
     isPersonalSigning.value = false;
   }
 
+  const isSendingTransaction = ref(false);
+  const transaction = ref<Transaction | null>(null);
+  function allowSendTransaction(): void {
+    chrome.runtime.sendMessage({
+      id: accountRequestId.value,
+      type: 'ALLOW_SEND_TRANSACTION',
+      data: transaction.value,
+    });
+    isSendingTransaction.value = false;
+  }
+  function denySendTransaction(): void {
+    chrome.runtime.sendMessage({
+      id: accountRequestId.value,
+      type: 'DENY_SEND_TRANSACTION',
+    });
+    isSendingTransaction.value = false;
+  }
+
   onMounted(async () => {
     document.addEventListener('DOMContentLoaded', () => {
       chrome.runtime.onMessage.addListener((message) => {
@@ -69,6 +92,11 @@ function useProvider(): UseProvider {
           personalSignedMessage.value = message.data;
           accountRequestId.value = message.id;
         }
+        if (message.type === 'SEND_TRANSACTION') {
+          isSendingTransaction.value = true;
+          transaction.value = message.data;
+          accountRequestId.value = message.id;
+        }
       });
     });
     const response = await chrome.runtime.sendMessage({
@@ -78,16 +106,24 @@ function useProvider(): UseProvider {
     isRequestingAccounts.value = response.isRequestingAccounts;
     isPersonalSigning.value = response.isPersonalSigning;
     personalSignedMessage.value = response.personalSignedMessage;
+    isSendingTransaction.value = response.isSendingTransaction;
+    transaction.value = response.transaction;
   });
 
   return {
     isRequestingAccounts,
     allowAccountRequest,
     denyAccountRequest,
+
     isPersonalSigning,
     personalSignedMessage,
     allowPersonalSign,
     denyPersonalSign,
+
+    isSendingTransaction,
+    transaction,
+    allowSendTransaction,
+    denySendTransaction,
   };
 }
 

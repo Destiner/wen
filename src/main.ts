@@ -8,6 +8,7 @@ import Home from '@/pages/Home.vue';
 import Import from '@/pages/Import.vue';
 import AccountRequest from '@/pages/requests/Account.vue';
 import PersonalSign from '@/pages/requests/PersonalSign.vue';
+import SendTransaction from '@/pages/requests/SendTransaction.vue';
 import { config } from '@/wagmi';
 
 import App from './App.vue';
@@ -27,6 +28,11 @@ const router = createRouter({
       path: '/personal-sign',
       name: 'personal-sign',
       component: PersonalSign,
+    },
+    {
+      path: '/send-transaction',
+      name: 'send-transaction',
+      component: SendTransaction,
     },
   ],
 });
