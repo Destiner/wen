@@ -2,19 +2,29 @@
   <div>
     <div v-if="account">{{ account.address }}</div>
     <div v-if="balance">{{ formatEther(balance) }} ETH</div>
+    <div v-if="delegation">Delegating to {{ delegation }}</div>
     <button @click="openDelegationPage">Delegate</button>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useIntervalFn } from '@vueuse/core';
-import { createPublicClient, formatEther, http } from 'viem';
-import { getBalance } from 'viem/actions';
+import {
+  Address,
+  createPublicClient,
+  formatEther,
+  http,
+  size,
+  slice,
+} from 'viem';
+import { getBalance, getCode } from 'viem/actions';
 import { odysseyTestnet } from 'viem/chains';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { useWallet } from '@/composables/useWallet';
+
+const DELEGATION_HEADER = '0xef0100';
 
 const router = useRouter();
 
@@ -23,9 +33,11 @@ const wallet = useWallet();
 const account = computed(() => wallet.account.value);
 
 const balance = ref<bigint | null>(null);
+const delegation = ref<Address | null>(null);
 useIntervalFn(
   () => {
     fetchBalance();
+    fetchDelegation();
   },
   10 * 1000,
   {
@@ -45,6 +57,24 @@ async function fetchBalance(): Promise<void> {
     address: account.value.address,
   });
   balance.value = accountBalance;
+}
+async function fetchDelegation(): Promise<void> {
+  if (!account.value) {
+    return;
+  }
+  const client = createPublicClient({
+    chain: odysseyTestnet,
+    transport: http(),
+  });
+  const code = await getCode(client, {
+    address: account.value.address,
+  });
+  delegation.value =
+    code === undefined
+      ? null
+      : slice(code, 0, size(DELEGATION_HEADER)) === DELEGATION_HEADER
+        ? slice(code, size(DELEGATION_HEADER))
+        : null;
 }
 
 function openDelegationPage(): void {
