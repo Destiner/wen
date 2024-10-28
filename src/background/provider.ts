@@ -7,6 +7,7 @@ import {
 } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import { odysseyTestnet } from 'viem/chains';
+import { eip7702Actions } from 'viem/experimental';
 
 import { Storage } from './storage';
 
@@ -211,7 +212,48 @@ function denySendTransaction(id: string | number): void {
   }
 }
 
-chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
+async function delegate(delegatee: Address): Promise<void> {
+  if (!walletState.mnemonic) {
+    chrome.runtime.sendMessage({
+      type: 'DELEGATED',
+      data: {
+        txHash: null,
+      },
+    });
+    return;
+  }
+  const account = mnemonicToAccount(walletState.mnemonic);
+  const walletClient = createWalletClient({
+    account,
+    chain: odysseyTestnet,
+    transport: http(),
+  }).extend(eip7702Actions());
+
+  const authorization = await walletClient.signAuthorization({
+    contractAddress: delegatee,
+  });
+  const txHash = await walletClient.sendTransaction({
+    authorizationList: [authorization],
+    data: '0x',
+    to: walletClient.account.address,
+  });
+
+  const publicClient = createPublicClient({
+    chain: odysseyTestnet,
+    transport: http(),
+  });
+  await publicClient.waitForTransactionReceipt({
+    hash: txHash,
+  });
+  chrome.runtime.sendMessage({
+    type: 'DELEGATED',
+    data: {
+      txHash,
+    },
+  });
+}
+
+chrome.runtime.onMessage.addListener(async (request, _, sendResponse) => {
   if (request.type === 'ALLOW_ACCOUNT_REQUEST') {
     allowAccountRequest(request.id, getAddresses());
   } else if (request.type === 'DENY_ACCOUNT_REQUEST') {
@@ -224,6 +266,9 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
     allowSendTransaction(request.id);
   } else if (request.type === 'DENY_SEND_TRANSACTION') {
     denySendTransaction(request.id);
+  } else if (request.type === 'DELEGATE') {
+    const delegatee = request.data.delegatee;
+    await delegate(delegatee);
   } else if (request.type === 'GET_PROVIDER_STATE') {
     sendResponse(providerState);
   } else if (request.type === 'GET_WALLET_STATE') {
