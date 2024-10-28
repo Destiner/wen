@@ -253,6 +253,14 @@ async function delegate(delegatee: Address): Promise<void> {
   });
 }
 
+function getWalletAddress(): Address | null {
+  if (!walletState.mnemonic) {
+    return null;
+  }
+  const account = mnemonicToAccount(walletState.mnemonic);
+  return account.address;
+}
+
 chrome.runtime.onMessage.addListener(async (request, _, sendResponse) => {
   if (request.type === 'ALLOW_ACCOUNT_REQUEST') {
     allowAccountRequest(request.id, getAddresses());
@@ -271,9 +279,16 @@ chrome.runtime.onMessage.addListener(async (request, _, sendResponse) => {
     await delegate(delegatee);
   } else if (request.type === 'GET_PROVIDER_STATE') {
     sendResponse(providerState);
-  } else if (request.type === 'GET_WALLET_STATE') {
-    sendResponse(walletState);
-  } else if (request.type === 'SET_MNEMONIC') {
+  } else if (request.type === 'GET_WALLET_ADDRESS') {
+    const address = getWalletAddress();
+    sendResponse({
+      address,
+    });
+  } else if (request.type === 'GET_WALLET_MNEMONIC') {
+    sendResponse({
+      mnemonic: walletState.mnemonic,
+    });
+  } else if (request.type === 'SET_WALLET_MNEMONIC') {
     walletState.mnemonic = request.data;
     storage.setProviderData({ mnemonic: request.data });
   }

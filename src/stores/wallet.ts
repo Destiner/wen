@@ -1,14 +1,15 @@
 import { defineStore } from 'pinia';
+import { Address } from 'viem';
 import { ref } from 'vue';
 
 const useWalletStore = defineStore('wallet', () => {
-  const mnemonic = ref<string | null>(null);
+  const address = ref<Address | null>(null);
 
-  function setMnemonic(value: string): void {
-    mnemonic.value = value;
+  function setAddress(value: Address): void {
+    address.value = value;
   }
 
-  return { mnemonic, setMnemonic };
+  return { address, setAddress };
 });
 
 export default useWalletStore;

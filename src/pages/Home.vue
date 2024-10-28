@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-if="account">{{ account.address }}</div>
+    <div v-if="walletAddress">{{ walletAddress }}</div>
     <div v-if="balance">{{ formatEther(balance) }} ETH</div>
     <div v-if="delegation">Delegating to {{ delegation }}</div>
     <button @click="openDelegationPage">Delegate</button>
@@ -30,7 +30,7 @@ const router = useRouter();
 
 const wallet = useWallet();
 
-const account = computed(() => wallet.account.value);
+const walletAddress = computed(() => wallet.address.value);
 
 const balance = ref<bigint | null>(null);
 const delegation = ref<Address | null>(null);
@@ -46,7 +46,7 @@ useIntervalFn(
   },
 );
 async function fetchBalance(): Promise<void> {
-  if (!account.value) {
+  if (!walletAddress.value) {
     return;
   }
   const client = createPublicClient({
@@ -54,12 +54,12 @@ async function fetchBalance(): Promise<void> {
     transport: http(),
   });
   const accountBalance = await getBalance(client, {
-    address: account.value.address,
+    address: walletAddress.value,
   });
   balance.value = accountBalance;
 }
 async function fetchDelegation(): Promise<void> {
-  if (!account.value) {
+  if (!walletAddress.value) {
     return;
   }
   const client = createPublicClient({
@@ -67,7 +67,7 @@ async function fetchDelegation(): Promise<void> {
     transport: http(),
   });
   const code = await getCode(client, {
-    address: account.value.address,
+    address: walletAddress.value,
   });
   delegation.value =
     code === undefined

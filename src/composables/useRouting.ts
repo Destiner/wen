@@ -9,7 +9,7 @@ function useRouting(): void {
   const provider = useProvider();
   const wallet = useWallet();
 
-  const hasWalletMnemonic = computed(() => !!wallet.mnemonic.value);
+  const hasWalletAddress = computed(() => !!wallet.address.value);
   const isProviderRequestingAccount = computed(
     () => provider.isRequestingAccounts.value,
   );
@@ -21,7 +21,7 @@ function useRouting(): void {
   );
 
   watch(isProviderRequestingAccount, (value) => {
-    if (!hasWalletMnemonic.value) {
+    if (!hasWalletAddress.value) {
       return;
     }
     if (value) {
@@ -32,7 +32,7 @@ function useRouting(): void {
   });
 
   watch(isProviderPersonalSigning, (value) => {
-    if (!hasWalletMnemonic.value) {
+    if (!hasWalletAddress.value) {
       return;
     }
     if (value) {
@@ -43,7 +43,7 @@ function useRouting(): void {
   });
 
   watch(isProviderSendingTransaction, (value) => {
-    if (!hasWalletMnemonic.value) {
+    if (!hasWalletAddress.value) {
       return;
     }
     if (value) {
@@ -54,7 +54,7 @@ function useRouting(): void {
   });
 
   watch(
-    hasWalletMnemonic,
+    hasWalletAddress,
     (value) => {
       if (!value) {
         router.push({ name: 'import' });

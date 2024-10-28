@@ -41,9 +41,7 @@ function useProvider(): UseProvider {
     () => store.isRequestingAccounts,
   );
   function allowAccountRequest(): void {
-    const addresses = wallet.account.value
-      ? [wallet.account.value.address]
-      : [];
+    const addresses = wallet.address.value ? [wallet.address.value] : [];
     chrome.runtime.sendMessage({
       id: accountRequestId.value,
       type: 'ALLOW_ACCOUNT_REQUEST',
