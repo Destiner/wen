@@ -1,7 +1,7 @@
 {
   "name": "wen",
   "version": "1.0.0",
-  "description": "Ethereum Wallet Environment",
+  "description": "Wallet Environment for Ethereum",
   "author": {
     "name": "Timur Badretdinov",
     "url": "https://github.com/Destiner"
