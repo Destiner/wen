@@ -4,6 +4,7 @@
     <div v-if="balance">{{ formatEther(balance) }} ETH</div>
     <div v-if="delegation">Delegating to {{ delegation }}</div>
     <button @click="openDelegationPage">Delegate</button>
+    <button @click="openMnemonicPage">Edit mnemonic</button>
   </div>
 </template>
 
@@ -80,6 +81,12 @@ async function fetchDelegation(): Promise<void> {
 function openDelegationPage(): void {
   router.push({
     name: 'delegation',
+  });
+}
+
+function openMnemonicPage(): void {
+  router.push({
+    name: 'mnemonic',
   });
 }
 </script>

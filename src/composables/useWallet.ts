@@ -7,7 +7,7 @@ interface UseWallet {
   address: Ref<Address | null>;
   setAddress: (value: Address) => void;
   getMnemonic: () => Promise<string | null>;
-  setMnemonic: (value: string) => void;
+  setMnemonic: (value: string) => Promise<void>;
 }
 
 function useWallet(): UseWallet {
@@ -20,19 +20,29 @@ function useWallet(): UseWallet {
   }
 
   async function getMnemonic(): Promise<string | null> {
-    const response = await chrome.runtime.sendMessage({ type: 'GET_MNEMONIC' });
+    const response = await chrome.runtime.sendMessage({
+      type: 'GET_WALLET_MNEMONIC',
+    });
     return response.mnemonic;
   }
 
-  function setMnemonic(value: string): void {
-    chrome.runtime.sendMessage({ type: 'SET_MNEMONIC', data: value });
+  async function setMnemonic(value: string): Promise<void> {
+    await chrome.runtime.sendMessage({
+      type: 'SET_WALLET_MNEMONIC',
+      data: value,
+    });
+    await fetchWalletAddress();
   }
 
-  onMounted(async () => {
+  async function fetchWalletAddress(): Promise<void> {
     const response = await chrome.runtime.sendMessage({
       type: 'GET_WALLET_ADDRESS',
     });
     store.setAddress(response.address);
+  }
+
+  onMounted(() => {
+    fetchWalletAddress();
   });
 
   return { address, setAddress, getMnemonic, setMnemonic };

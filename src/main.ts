@@ -7,6 +7,7 @@ import { createWebHashHistory, createRouter } from 'vue-router';
 import Delegation from '@/pages/Delegation.vue';
 import Home from '@/pages/Home.vue';
 import Import from '@/pages/Import.vue';
+import Mnemonic from '@/pages/Mnemonic.vue';
 import AccountRequest from '@/pages/requests/Account.vue';
 import PersonalSign from '@/pages/requests/PersonalSign.vue';
 import SendTransaction from '@/pages/requests/SendTransaction.vue';
@@ -21,6 +22,7 @@ const router = createRouter({
     { path: '/', name: 'home', component: Home },
     { path: '/import', name: 'import', component: Import },
     { path: '/delegation', name: 'delegation', component: Delegation },
+    { path: '/mnemonic', name: 'mnemonic', component: Mnemonic },
     {
       path: '/account-request',
       name: 'account-request',
