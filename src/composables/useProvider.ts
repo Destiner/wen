@@ -2,6 +2,7 @@ import { whenever } from '@vueuse/core';
 import { Address, Hex, Transaction } from 'viem';
 import { computed, onMounted, Ref, ref } from 'vue';
 
+import { PermissionRequest } from '@/background/provider';
 import useProviderStore from '@/stores/provider';
 
 import { useWallet } from './useWallet';
@@ -25,6 +26,11 @@ interface UseProvider {
     delegatee: Address,
     cb: (txHash: Hex | null) => void,
   ) => Promise<void>;
+
+  isRequestingPermissions: Ref<boolean>;
+  permissionRequest: Ref<PermissionRequest | null>;
+  allowRequestPermissions: () => void;
+  denyRequestPermissions: () => void;
 }
 
 function useProvider(): UseProvider {
@@ -119,6 +125,28 @@ function useProvider(): UseProvider {
     }
   });
 
+  const isRequestingPermissions = computed<boolean>(
+    () => store.isRequestingPermissions,
+  );
+  const permissionRequest = computed<PermissionRequest | null>(
+    () => store.permissionRequest,
+  );
+  function allowRequestPermissions(): void {
+    chrome.runtime.sendMessage({
+      id: accountRequestId.value,
+      type: 'ALLOW_REQUEST_PERMISSIONS',
+      data: transaction.value,
+    });
+    store.setIsRequestingPermissions(false);
+  }
+  function denyRequestPermissions(): void {
+    chrome.runtime.sendMessage({
+      id: accountRequestId.value,
+      type: 'DENY_REQUEST_PERMISSIONS',
+    });
+    store.setIsRequestingPermissions(false);
+  }
+
   onMounted(async () => {
     document.addEventListener('DOMContentLoaded', () => {
       chrome.runtime.onMessage.addListener((message) => {
@@ -140,6 +168,11 @@ function useProvider(): UseProvider {
           const txHash = message.data.txHash;
           store.setDelegationTxHash(txHash);
         }
+        if (message.type === 'REQUEST_PERMISSIONS') {
+          store.setIsRequestingPermissions(true);
+          store.setPermissionRequest(message.data);
+          store.setAccountRequestId(message.id);
+        }
       });
     });
     const response = await chrome.runtime.sendMessage({
@@ -151,6 +184,8 @@ function useProvider(): UseProvider {
     store.setPersonalSignedMessage(response.personalSignedMessage);
     store.setIsSendingTransaction(response.isSendingTransaction);
     store.setTransaction(response.transaction);
+    store.setIsRequestingPermissions(response.isRequestingPermissions);
+    store.setPermissionRequest(response.permissionRequest);
   });
 
   return {
@@ -169,6 +204,11 @@ function useProvider(): UseProvider {
     denySendTransaction,
 
     delegate,
+
+    isRequestingPermissions,
+    permissionRequest,
+    allowRequestPermissions,
+    denyRequestPermissions,
   };
 }
 

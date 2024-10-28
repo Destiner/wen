@@ -9,6 +9,10 @@ import {
   requestAccounts,
   personalSign,
   sendTransaction,
+  PermissionRequest,
+  requestPermissions,
+  getPermissions,
+  revokePermissions,
 } from './provider';
 
 init();
@@ -110,6 +114,48 @@ function setupProviderConnection(port: Runtime.Port): void {
             error: response.error,
           });
         }
+      });
+    }
+    if (data.method === 'wallet_getPermissions') {
+      const permissions = getPermissions();
+      port.postMessage({
+        jsonrpc: '2.0',
+        id: data.id,
+        result: permissions,
+      });
+    }
+    if (data.method === 'wallet_requestPermissions') {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const params = data.params as [PermissionRequest];
+      const permissionRequest = params[0];
+      openPopup();
+      requestPermissions(id, permissionRequest, (response) => {
+        if (response.status === true) {
+          port.postMessage({
+            jsonrpc: '2.0',
+            id: data.id,
+            result: response.result,
+          });
+        } else {
+          port.postMessage({
+            jsonrpc: '2.0',
+            id: data.id,
+            error: response.error,
+          });
+        }
+      });
+    }
+    if (data.method === 'wallet_revokePermissions') {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const params = data.params as [PermissionRequest];
+      const permissionRequest = params[0];
+      revokePermissions(permissionRequest);
+      port.postMessage({
+        jsonrpc: '2.0',
+        id: data.id,
+        result: null,
       });
     }
   });

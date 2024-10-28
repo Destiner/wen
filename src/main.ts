@@ -9,6 +9,7 @@ import Home from '@/pages/Home.vue';
 import Import from '@/pages/Import.vue';
 import Mnemonic from '@/pages/Mnemonic.vue';
 import AccountRequest from '@/pages/requests/Account.vue';
+import Permissions from '@/pages/requests/Permissions.vue';
 import PersonalSign from '@/pages/requests/PersonalSign.vue';
 import SendTransaction from '@/pages/requests/SendTransaction.vue';
 import { config } from '@/wagmi';
@@ -37,6 +38,11 @@ const router = createRouter({
       path: '/send-transaction',
       name: 'send-transaction',
       component: SendTransaction,
+    },
+    {
+      path: '/request-permissions',
+      name: 'request-permissions',
+      component: Permissions,
     },
   ],
 });

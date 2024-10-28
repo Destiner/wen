@@ -2,6 +2,8 @@ import { defineStore } from 'pinia';
 import { Hex, Transaction } from 'viem';
 import { ref } from 'vue';
 
+import { PermissionRequest } from '@/background/provider';
+
 const useProviderStore = defineStore('provider', () => {
   const accountRequestId = ref<string | number>('');
   const isRequestingAccounts = ref<boolean>(false);
@@ -10,6 +12,8 @@ const useProviderStore = defineStore('provider', () => {
   const isSendingTransaction = ref<boolean>(false);
   const transaction = ref<Transaction | null>(null);
   const delegationTxHash = ref<Hex | null>(null);
+  const isRequestingPermissions = ref<boolean>(false);
+  const permissionRequest = ref<PermissionRequest | null>(null);
 
   function setAccountRequestId(value: string | number): void {
     accountRequestId.value = value;
@@ -39,6 +43,14 @@ const useProviderStore = defineStore('provider', () => {
     delegationTxHash.value = value;
   }
 
+  function setIsRequestingPermissions(value: boolean): void {
+    isRequestingPermissions.value = value;
+  }
+
+  function setPermissionRequest(value: PermissionRequest | null): void {
+    permissionRequest.value = value;
+  }
+
   return {
     accountRequestId,
     isRequestingAccounts,
@@ -47,6 +59,8 @@ const useProviderStore = defineStore('provider', () => {
     isSendingTransaction,
     transaction,
     delegationTxHash,
+    isRequestingPermissions,
+    permissionRequest,
     setAccountRequestId,
     setIsRequestingAccounts,
     setIsPersonalSigning,
@@ -54,6 +68,8 @@ const useProviderStore = defineStore('provider', () => {
     setIsSendingTransaction,
     setTransaction,
     setDelegationTxHash,
+    setIsRequestingPermissions,
+    setPermissionRequest,
   };
 });
 

@@ -1,9 +1,11 @@
+import { v4 as uuidv4 } from '@lukeed/uuid';
 import {
   Address,
   createPublicClient,
   createWalletClient,
   Hex,
   http,
+  WalletPermission,
 } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import { odysseyTestnet } from 'viem/chains';
@@ -21,6 +23,12 @@ interface SendTransactionRequest {
   maxPriorityFeePerGas?: Hex;
   maxFeePerGas?: Hex;
   nonce?: Hex;
+}
+
+interface PermissionRequest {
+  [methodName: string]: {
+    [caveatName: string]: unknown;
+  };
 }
 
 type Response<T> =
@@ -47,6 +55,10 @@ interface ProviderState {
 
   isSendingTransaction: boolean;
   transaction: SendTransactionRequest | null;
+
+  isRequestingPermissions: boolean;
+  permissionRequest: PermissionRequest | null;
+  permissions: WalletPermission[];
 }
 
 interface WalletState {
@@ -66,6 +78,10 @@ const providerState: ProviderState = {
 
   isSendingTransaction: false,
   transaction: null,
+
+  isRequestingPermissions: false,
+  permissionRequest: null,
+  permissions: [],
 };
 
 const walletState: WalletState = {
@@ -132,6 +148,38 @@ async function sendTransaction(
   chrome.runtime.sendMessage({
     type: 'SEND_TRANSACTION',
     id,
+  });
+}
+
+async function getPermissions(): Promise<WalletPermission[]> {
+  return providerState.permissions;
+}
+
+async function requestPermissions(
+  id: string | number,
+  permissionRequest: PermissionRequest,
+  callback: (value: Response<PermissionRequest>) => void,
+): Promise<void> {
+  callbacks[id] = callback;
+  providerState.isRequestingPermissions = true;
+  providerState.permissionRequest = permissionRequest;
+  providerState.accountRequestId = id;
+  chrome.runtime.sendMessage({
+    type: 'REQUEST_PERMISSIONS',
+    id,
+  });
+}
+
+async function revokePermissions(
+  permissionRequest: PermissionRequest,
+): Promise<void> {
+  if (Object.keys(permissionRequest).includes('eth_accounts')) {
+    providerState.allowedAccounts = [];
+  }
+  providerState.permissions = providerState.permissions.filter((permission) => {
+    return !Object.keys(permissionRequest).includes(
+      permission.parentCapability,
+    );
   });
 }
 
@@ -212,6 +260,53 @@ function denySendTransaction(id: string | number): void {
   }
 }
 
+async function allowRequestPermissions(id: string | number): Promise<void> {
+  providerState.isRequestingPermissions = false;
+  if (!providerState.permissionRequest) {
+    return;
+  }
+  if (Object.keys(providerState.permissionRequest).includes('eth_accounts')) {
+    providerState.allowedAccounts = getAddresses();
+  }
+  const walletPermissions: WalletPermission[] = Object.keys(
+    providerState.permissionRequest,
+  ).map((permissionName) => {
+    return {
+      id: uuidv4(),
+      parentCapability: permissionName,
+      // TODO
+      invoker: 'https://',
+      caveats: [
+        {
+          type: 'restrictReturnedAccounts',
+          value: getAddresses(),
+        },
+      ],
+      date: Date.now(),
+    };
+  });
+  providerState.permissions = walletPermissions;
+  providerState.permissionRequest = null;
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: true,
+      result: walletPermissions,
+    });
+  }
+}
+
+function denyRequestPermissions(id: string | number): void {
+  providerState.isRequestingPermissions = false;
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: false,
+      error: new Error('User denied permission request'),
+    });
+  }
+}
+
 async function delegate(delegatee: Address): Promise<void> {
   if (!walletState.mnemonic) {
     chrome.runtime.sendMessage({
@@ -274,6 +369,10 @@ chrome.runtime.onMessage.addListener(async (request, _, sendResponse) => {
     allowSendTransaction(request.id);
   } else if (request.type === 'DENY_SEND_TRANSACTION') {
     denySendTransaction(request.id);
+  } else if (request.type === 'ALLOW_REQUEST_PERMISSIONS') {
+    allowRequestPermissions(request.id);
+  } else if (request.type === 'DENY_REQUEST_PERMISSIONS') {
+    denyRequestPermissions(request.id);
   } else if (request.type === 'DELEGATE') {
     const delegatee = request.data.delegatee;
     await delegate(delegatee);
@@ -370,5 +469,8 @@ export {
   requestAccounts,
   personalSign,
   sendTransaction,
+  getPermissions,
+  requestPermissions,
+  revokePermissions,
 };
-export type { SendTransactionRequest };
+export type { SendTransactionRequest, PermissionRequest };

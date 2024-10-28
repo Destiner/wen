@@ -19,6 +19,9 @@ function useRouting(): void {
   const isProviderSendingTransaction = computed(
     () => provider.isSendingTransaction.value,
   );
+  const isProviderRequestingPermissions = computed(
+    () => provider.isRequestingPermissions.value,
+  );
 
   watch(isProviderRequestingAccount, (value) => {
     if (!hasWalletAddress.value) {
@@ -53,6 +56,17 @@ function useRouting(): void {
     }
   });
 
+  watch(isProviderRequestingPermissions, (value) => {
+    if (!hasWalletAddress.value) {
+      return;
+    }
+    if (value) {
+      router.push({ name: 'request-permissions' });
+    } else {
+      router.push({ name: 'home' });
+    }
+  });
+
   watch(
     hasWalletAddress,
     (value) => {
@@ -70,6 +84,10 @@ function useRouting(): void {
       }
       if (isProviderSendingTransaction.value) {
         router.push({ name: 'send-transaction' });
+        return;
+      }
+      if (isProviderRequestingPermissions.value) {
+        router.push({ name: 'request-permissions' });
         return;
       }
       router.push({ name: 'home' });
