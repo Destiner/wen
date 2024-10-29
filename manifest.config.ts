@@ -17,7 +17,7 @@ export default defineManifest(async () => ({
   manifest_version: 3,
   host_permissions: ['<all_urls>'],
   permissions: ['tabs', 'storage'],
-  action: { default_popup: 'src/popup/index.html' },
+  action: { default_popup: 'index.html' },
   background: {
     service_worker: 'src/background/index.ts',
   },

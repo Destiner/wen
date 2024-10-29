@@ -170,7 +170,7 @@ function openPopup(): void {
     const left = windowWidth + windowLeft - width - 8;
     const top = (window.top || 0) + 8;
     chrome.windows.create({
-      url: chrome.runtime.getURL('popup/index.html'),
+      url: chrome.runtime.getURL('index.html'),
       type: 'popup',
       width,
       height,
