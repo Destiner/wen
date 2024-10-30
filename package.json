@@ -28,6 +28,7 @@
     "typecheck": "tsc --noEmit && vue-tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "^5.1.0",
     "@lukeed/uuid": "^2.0.1",
     "@metamask/json-rpc-engine": "^10.0.0",
     "@metamask/json-rpc-middleware-stream": "^8.0.4",
