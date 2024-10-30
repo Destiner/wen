@@ -15,6 +15,11 @@ export default defineManifest(async () => ({
   version: `${major}.${minor}.${patch}.${label}`,
   version_name: version,
   manifest_version: 3,
+  icons: {
+    16: 'public/icons/icon16.png',
+    48: 'public/icons/icon48.png',
+    128: 'public/icons/icon128.png',
+  },
   host_permissions: ['<all_urls>'],
   permissions: ['tabs', 'storage'],
   action: { default_popup: 'index.html' },
