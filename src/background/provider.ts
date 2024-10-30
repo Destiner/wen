@@ -432,17 +432,6 @@ async function submitTransaction(
   });
   const value = BigInt(transaction.value || '0x0');
 
-  // Estimate gas limit if not provided
-  let gas = BigInt(transaction.gas || '0x0');
-  if (!gas) {
-    const gasLimit = await publicClient.estimateGas({
-      to: transaction.to,
-      data: transaction.data,
-      value,
-    });
-    gas = gasLimit;
-  }
-
   // Estimate gas price if not provided
   let maxFeePerGas = BigInt(transaction.gasPrice || '0x0');
   let maxPriorityFeePerGas = BigInt(transaction.gasPrice || '0x0');
@@ -450,6 +439,20 @@ async function submitTransaction(
     const feeValues = await publicClient.estimateFeesPerGas();
     maxFeePerGas = feeValues.maxFeePerGas;
     maxPriorityFeePerGas = feeValues.maxPriorityFeePerGas;
+  }
+
+  // Estimate gas limit if not provided
+  let gas = BigInt(transaction.gas || '0x0');
+  if (!gas) {
+    const gasLimit = await publicClient.estimateGas({
+      account: walletClient.account.address,
+      to: transaction.to,
+      data: transaction.data,
+      value,
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+    });
+    gas = gasLimit;
   }
 
   return await walletClient.sendTransaction({
