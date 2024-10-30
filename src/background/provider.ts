@@ -307,7 +307,7 @@ function denyRequestPermissions(id: string | number): void {
   }
 }
 
-async function delegate(delegatee: Address): Promise<void> {
+async function delegate(delegatee: Address, data: Hex): Promise<void> {
   if (!walletState.mnemonic) {
     chrome.runtime.sendMessage({
       type: 'DELEGATED',
@@ -329,7 +329,7 @@ async function delegate(delegatee: Address): Promise<void> {
   });
   const txHash = await walletClient.sendTransaction({
     authorizationList: [authorization],
-    data: '0x',
+    data,
     to: walletClient.account.address,
   });
 
@@ -375,7 +375,8 @@ chrome.runtime.onMessage.addListener(async (request, _, sendResponse) => {
     denyRequestPermissions(request.id);
   } else if (request.type === 'DELEGATE') {
     const delegatee = request.data.delegatee;
-    await delegate(delegatee);
+    const data = request.data.data;
+    await delegate(delegatee, data);
   } else if (request.type === 'GET_PROVIDER_STATE') {
     sendResponse(providerState);
   } else if (request.type === 'GET_WALLET_ADDRESS') {

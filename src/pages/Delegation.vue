@@ -6,6 +6,11 @@
     placeholder="Delegatee address"
     @blur="handleBlur"
   />
+  <input
+    v-model="initializationData"
+    placeholder="Initialization data"
+    @blur="handleBlur"
+  />
   <div
     v-if="!isValid && isDirty"
     class="error"
@@ -28,9 +33,18 @@ const router = useRouter();
 const { delegate: providerDelegate } = useProvider();
 
 const delegateeAddress = ref('');
+const initializationData = ref('');
 const isDirty = ref(false);
 
-const isValid = computed(() => isAddress(delegateeAddress.value));
+function isHex(value: string): boolean {
+  return /^0x[0-9a-fA-F]*$/.test(value);
+}
+
+const isValid = computed(
+  () =>
+    isAddress(delegateeAddress.value) &&
+    (initializationData.value === '' || isHex(initializationData.value)),
+);
 
 const output = ref('');
 
@@ -39,8 +53,12 @@ async function delegate(): Promise<void> {
     isDirty.value = true;
     return;
   }
+  const data = initializationData.value
+    ? (initializationData.value as Hex)
+    : '0x';
   await providerDelegate(
     delegateeAddress.value as Address,
+    data,
     (txHash: Hex | null) => {
       output.value = `Delegated to ${delegateeAddress.value} with tx hash ${txHash}`;
     },

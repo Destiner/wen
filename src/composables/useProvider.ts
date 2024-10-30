@@ -24,6 +24,7 @@ interface UseProvider {
 
   delegate: (
     delegatee: Address,
+    data: Hex,
     cb: (txHash: Hex | null) => void,
   ) => Promise<void>;
 
@@ -106,12 +107,14 @@ function useProvider(): UseProvider {
   const delegationTxHash = computed<Hex | null>(() => store.delegationTxHash);
   async function delegate(
     delegatee: Address,
+    data: Hex,
     cb: (txHash: Hex | null) => void,
   ): Promise<void> {
     chrome.runtime.sendMessage({
       type: 'DELEGATE',
       data: {
         delegatee,
+        data,
       },
     });
     delegationCallback.value = cb;
