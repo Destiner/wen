@@ -5,6 +5,7 @@
 </template>
 
 <script setup lang="ts">
+import '@fontsource-variable/inter';
 import { RouterView } from 'vue-router';
 
 import { useRouting } from '@/composables/useRouting';
@@ -15,9 +16,9 @@ useRouting();
 <!-- eslint-disable-next-line vue/enforce-style-attribute -->
 <style>
 :root {
-  --font-sans: -apple-system, 'BlinkMacSystemFont', avenir next, avenir,
-    segoe ui, helvetica neue, helvetica, 'Ubuntu', roboto, noto, arial,
-    sans-serif;
+  --font-sans: 'Inter Variable', -apple-system, 'BlinkMacSystemFont',
+    avenir next, avenir, segoe ui, helvetica neue, helvetica, 'Ubuntu', roboto,
+    noto, arial, sans-serif;
   --font-serif: 'Iowan Old Style', 'Apple Garamond', 'Baskerville',
     'Times New Roman', 'Droid Serif', 'Times', 'Source Serif Pro', serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
