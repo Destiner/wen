@@ -16,6 +16,12 @@ useRouting();
 <!-- eslint-disable-next-line vue/enforce-style-attribute -->
 <style>
 :root {
+  --text-primary: #fafafa;
+  --text-secondary: #e0e0e0;
+  --text-error: tomato;
+  --background-primary: #000;
+  --background-secondary: #1b1b1b;
+  --accent: #ff7dcb;
   --font-sans: 'Inter Variable', -apple-system, 'BlinkMacSystemFont',
     avenir next, avenir, segoe ui, helvetica neue, helvetica, 'Ubuntu', roboto,
     noto, arial, sans-serif;
@@ -28,6 +34,11 @@ useRouting();
 
 body {
   width: 340px;
+  height: 600px;
+  margin: 0;
+  padding: 0;
+  background: var(--background-primary);
+  color: var(--text-primary);
   font-family: var(--font-sans);
 }
 
@@ -39,8 +50,7 @@ body {
   box-sizing: border-box;
 }
 
-html,
-body {
+html {
   height: 100%;
 }
 
@@ -72,5 +82,6 @@ h6 {
 
 #app {
   isolation: isolate;
+  height: 100%;
 }
 </style>

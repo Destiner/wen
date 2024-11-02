@@ -83,7 +83,7 @@ input {
 }
 
 .error {
-  color: tomato;
+  color: var(--text-error);
   font-size: 13px;
 }
 </style>
