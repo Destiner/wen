@@ -115,7 +115,7 @@ export default [
     },
   },
   {
-    files: ['src/pages/**/*.vue'],
+    files: ['src/pages/**/*.vue', 'src/components/__common/icons/**/*.vue'],
     rules: {
       'vue/multi-word-component-names': 'off',
     },
