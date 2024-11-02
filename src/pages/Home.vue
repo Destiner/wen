@@ -85,6 +85,7 @@ import WenIcon from '@/components/__common/WenIcon.vue';
 import WenInfoBlock from '@/components/__common/WenInfoBlock.vue';
 import WenPage from '@/components/__common/WenPage.vue';
 import { useWallet } from '@/composables/useWallet';
+import { formatAddress } from '@/utils/formatting';
 
 const DELEGATION_HEADER = '0xef0100';
 
@@ -167,12 +168,6 @@ function openMnemonicPage(): void {
   router.push({
     name: 'mnemonic',
   });
-}
-
-function formatAddress(address: Address, length: number): string {
-  return `${address.substring(0, length / 2 + 2)}...${address.substring(
-    address.length - length / 2,
-  )}`;
 }
 </script>
 

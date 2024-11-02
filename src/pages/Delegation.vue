@@ -1,35 +1,65 @@
 <template>
-  <button @click="openHomePage">← Back</button>
-  <div>Delegate your EOA to a smart contract</div>
-  <select v-model="selectedDelegationType">
-    <option
-      v-for="option in delegationTypes"
-      :key="option.value"
-      :value="option.value"
-    >
-      {{ option.label }}
-    </option>
-  </select>
-  <template v-if="selectedDelegationType === CUSTOM">
-    <input
-      v-model="delegateeAddressInput"
-      placeholder="Delegatee address"
-      @blur="handleBlur"
-    />
-    <input
-      v-model="initializationDataInput"
-      placeholder="Initialization data"
-      @blur="handleBlur"
-    />
-    <div
-      v-if="!isValid && isDirty"
-      class="error"
-    >
-      Invalid address
-    </div>
-  </template>
-  <button @click="delegate">Delegate</button>
-  <div>{{ output }}</div>
+  <WenPage
+    title="Delegate"
+    subtitle="your EOA to a smart contract"
+  >
+    <template #header>
+      <div>
+        <WenButton
+          type="naked"
+          size="small"
+          label="← Back"
+          @click="openHomePage"
+        />
+      </div>
+    </template>
+    <template #default>
+      <WenSelect
+        v-model="selectedDelegationType"
+        placeholder="Select delegation type"
+        :options="delegationTypes"
+      />
+      <template v-if="selectedDelegationType === CUSTOM">
+        <WenInput
+          v-model="delegateeAddressInput"
+          label="Delegatee address"
+          placeholder="0x…"
+          :is-valid="isDelegateeAddressValid"
+          error-text="Invalid address"
+          @blur="handleDelegateeAddressInputBlur"
+        />
+
+        <WenInput
+          v-model="initializationDataInput"
+          label="Initialization data"
+          placeholder="0x…"
+          :is-valid="isInitializationDataValid"
+          error-text="Invalid data"
+          @blur="handleInitializationDataInputBlur"
+        />
+      </template>
+    </template>
+
+    <template #footer>
+      <WenInfoBlock type="info">
+        <template #default>
+          <ul>
+            <li>
+              Your EOA will be delegated to
+              {{ formatAddress(delegateeAddress as Address, 20) }}
+            </li>
+            <li>Your EOA will be the owner of the delegated smart account</li>
+          </ul>
+        </template>
+      </WenInfoBlock>
+      <WenButton
+        type="primary"
+        size="large"
+        label="Delegate"
+        @click="delegate"
+      />
+    </template>
+  </WenPage>
 </template>
 
 <script setup lang="ts">
@@ -39,14 +69,24 @@ import {
   encodeFunctionData,
   Hex,
   isAddress,
+  isHex,
   zeroAddress,
 } from 'viem';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
+import WenButton from '@/components/__common/WenButton.vue';
+import WenInfoBlock from '@/components/__common/WenInfoBlock.vue';
+import WenInput from '@/components/__common/WenInput.vue';
+import WenPage from '@/components/__common/WenPage.vue';
+import WenSelect from '@/components/__common/WenSelect.vue';
 import { useProvider } from '@/composables/useProvider';
 import { useWallet } from '@/composables/useWallet';
+import { formatAddress } from '@/utils/formatting';
 
+const router = useRouter();
+
+const { delegate: providerDelegate } = useProvider();
 const { address } = useWallet();
 
 const KERNER_V3_IMPLEMENTATION_ADDRESS =
@@ -62,13 +102,29 @@ const delegationTypes = ref([
   { value: CUSTOM, label: 'Custom' },
 ]);
 
-const router = useRouter();
-
-const { delegate: providerDelegate } = useProvider();
-
 const delegateeAddressInput = ref('');
 const initializationDataInput = ref('');
-const isDirty = ref(false);
+const isDelegateeAddressInputDirty = ref(false);
+const isInitializationDataInputDirty = ref(false);
+
+const isDelegateeAddressValid = computed(
+  () =>
+    !isDelegateeAddressInputDirty.value ||
+    isAddress(delegateeAddressInput.value),
+);
+const isInitializationDataValid = computed(
+  () =>
+    !isInitializationDataInputDirty.value ||
+    isHex(initializationDataInput.value),
+);
+
+function handleDelegateeAddressInputBlur(): void {
+  isDelegateeAddressInputDirty.value = true;
+}
+
+function handleInitializationDataInputBlur(): void {
+  isInitializationDataInputDirty.value = true;
+}
 
 const delegateeAddress = computed(() => {
   if (selectedDelegationType.value === KERNEL_V3) {
@@ -125,37 +181,22 @@ const initializationData = computed(() => {
   return initializationDataInput.value;
 });
 
-function isHex(value: string): boolean {
-  return /^0x[0-9a-fA-F]*$/.test(value);
-}
-
 const isValid = computed(
-  () =>
-    isAddress(delegateeAddress.value) &&
-    (initializationData.value === '' || isHex(initializationData.value)),
+  () => isDelegateeAddressValid.value && isInitializationDataValid.value,
 );
-
-const output = ref('');
 
 async function delegate(): Promise<void> {
   if (!isValid.value) {
-    isDirty.value = true;
+    isDelegateeAddressInputDirty.value = true;
+    isInitializationDataInputDirty.value = true;
     return;
   }
   const data = initializationData.value
     ? (initializationData.value as Hex)
     : '0x';
-  await providerDelegate(
-    delegateeAddress.value as Address,
-    data,
-    (txHash: Hex | null) => {
-      output.value = `Delegated to ${delegateeAddress.value} with tx hash ${txHash}`;
-    },
-  );
-}
-
-function handleBlur(): void {
-  isDirty.value = true;
+  await providerDelegate(delegateeAddress.value as Address, data, () => {
+    openHomePage();
+  });
 }
 
 function openHomePage(): void {
@@ -164,3 +205,10 @@ function openHomePage(): void {
   });
 }
 </script>
+
+<style scoped>
+ul {
+  margin: 0;
+  padding-left: 16px;
+}
+</style>
