@@ -1,24 +1,42 @@
 <template>
-  <div class="root">
-    <button @click="openHomePage">← Back</button>
-    <h1>Edit mnemonic</h1>
-    <input
-      v-model="input"
-      @blur="handleBlur"
-    />
-    <div
-      v-if="!isValid && isDirty"
-      class="error"
-    >
-      Invalid seed phrase
-    </div>
-    <button
-      :disabled="!isValid"
-      @click="save"
-    >
-      Save
-    </button>
-  </div>
+  <WenPage title="Change Mnemonic">
+    <template #header>
+      <div>
+        <WenButton
+          type="naked"
+          size="small"
+          label="← Back"
+          @click="openHomePage"
+        />
+      </div>
+    </template>
+    <template #default>
+      <WenTextArea
+        v-model="mnemonicInput"
+        label="Seed Phrase"
+        placeholder="12-word phrase"
+        :is-valid="isValid"
+        error-text="Invalid mnemonic"
+        @blur="handleInputBlur"
+      />
+    </template>
+
+    <template #footer>
+      <WenInfoBlock type="warning">
+        <template #default>
+          This wallet is optimized for developer experience, not security. Do
+          NOT use it with large mainnet funds.
+        </template>
+      </WenInfoBlock>
+      <WenButton
+        type="primary"
+        size="large"
+        label="Save"
+        :disabled="!hasMnemonic"
+        @click="store"
+      />
+    </template>
+  </WenPage>
 </template>
 
 <script setup lang="ts">
@@ -27,6 +45,10 @@ import { wordlist } from '@scure/bip39/wordlists/english';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
+import WenButton from '@/components/__common/WenButton.vue';
+import WenInfoBlock from '@/components/__common/WenInfoBlock.vue';
+import WenPage from '@/components/__common/WenPage.vue';
+import WenTextArea from '@/components/__common/WenTextArea.vue';
 import { useWallet } from '@/composables/useWallet';
 
 const router = useRouter();
@@ -34,10 +56,13 @@ const router = useRouter();
 const { getMnemonic: getWalletMnemonic, setMnemonic: setWalletMnemonic } =
   useWallet();
 
-const input = ref('');
+const mnemonicInput = ref('');
 const isDirty = ref(false);
 
-const isValid = computed(() => validateMnemonic(input.value, wordlist));
+const hasMnemonic = computed(() =>
+  validateMnemonic(mnemonicInput.value, wordlist),
+);
+const isValid = computed(() => !isDirty.value || hasMnemonic.value);
 
 onMounted(() => {
   getMnemonic();
@@ -46,20 +71,19 @@ onMounted(() => {
 async function getMnemonic(): Promise<void> {
   const walletMnemonic = await getWalletMnemonic();
   if (walletMnemonic) {
-    input.value = walletMnemonic;
+    mnemonicInput.value = walletMnemonic;
   }
 }
 
-async function save(): Promise<void> {
+async function store(): Promise<void> {
   isDirty.value = true;
   if (!isValid.value) {
     return;
   }
-  await setWalletMnemonic(input.value);
-  openHomePage();
+  setWalletMnemonic(mnemonicInput.value);
 }
 
-function handleBlur(): void {
+function handleInputBlur(): void {
   isDirty.value = true;
 }
 
@@ -69,21 +93,3 @@ function openHomePage(): void {
   });
 }
 </script>
-
-<style scoped>
-.root {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-}
-
-input {
-  width: 100%;
-}
-
-.error {
-  color: var(--text-error);
-  font-size: 13px;
-}
-</style>

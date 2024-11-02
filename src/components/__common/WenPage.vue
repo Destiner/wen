@@ -19,7 +19,9 @@
           {{ subtitle }}
         </div>
       </div>
-      <slot />
+      <div class="content">
+        <slot />
+      </div>
     </div>
     <div class="footer">
       <slot name="footer" />
@@ -46,7 +48,13 @@ const { title = '', subtitle = '' } = defineProps<{
 .main {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 24px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .title {

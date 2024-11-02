@@ -7,6 +7,7 @@
       large: size === 'large',
       primary: type === 'primary',
       ghost: type === 'ghost',
+      naked: type === 'naked',
     }"
   >
     {{ label }}
@@ -16,7 +17,7 @@
 <script setup lang="ts">
 type Size = 'small' | 'medium' | 'large';
 
-type Type = 'primary' | 'ghost';
+type Type = 'primary' | 'ghost' | 'naked';
 
 const { disabled = false } = defineProps<{
   label: string;
@@ -61,6 +62,16 @@ button {
     border: 1px solid currentcolor;
     background: transparent;
     color: currentcolor;
+  }
+
+  &.naked {
+    opacity: 0.6;
+    background: transparent;
+    color: currentcolor;
+
+    &:hover {
+      opacity: 1;
+    }
   }
 }
 </style>
