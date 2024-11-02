@@ -1,27 +1,66 @@
 <template>
-  <button :disabled>{{ label }}</button>
+  <button
+    :disabled
+    :class="{
+      small: size === 'small',
+      medium: size === 'medium',
+      large: size === 'large',
+      primary: type === 'primary',
+      ghost: type === 'ghost',
+    }"
+  >
+    {{ label }}
+  </button>
 </template>
 
 <script setup lang="ts">
+type Size = 'small' | 'medium' | 'large';
+
+type Type = 'primary' | 'ghost';
+
 const { disabled = false } = defineProps<{
   label: string;
+  size: Size;
+  type: Type;
   disabled?: boolean;
 }>();
 </script>
 
 <style scoped>
 button {
-  padding: 12px;
   border: none;
   border-radius: 2px;
-  background: #ff7dcb;
-  color: white;
-  font-size: 16px;
   cursor: pointer;
 
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  &.small {
+    padding: 4px;
+    font-size: 12px;
+  }
+
+  &.medium {
+    padding: 8px;
+    font-size: 14px;
+  }
+
+  &.large {
+    padding: 12px;
+    font-size: 16px;
+  }
+
+  &.primary {
+    background: #ff7dcb;
+    color: white;
+  }
+
+  &.ghost {
+    border: 1px solid currentcolor;
+    background: transparent;
+    color: currentcolor;
   }
 }
 </style>

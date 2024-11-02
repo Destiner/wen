@@ -7,6 +7,7 @@
     }"
   >
     <slot />
+    <slot name="append" />
   </div>
 </template>
 
@@ -20,6 +21,9 @@ defineProps<{
 
 <style scoped>
 .root {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 12px;
   border-radius: 2px;
 

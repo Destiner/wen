@@ -22,6 +22,8 @@
         </template>
       </WenInfoBlock>
       <WenButton
+        type="primary"
+        size="large"
         label="Import"
         :disabled="!hasMnemonic"
         @click="store"
