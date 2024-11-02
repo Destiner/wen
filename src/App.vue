@@ -21,6 +21,7 @@ useRouting();
   --text-error: tomato;
   --background-primary: #000;
   --background-secondary: #1b1b1b;
+  --border: #333;
   --accent: #ff7dcb;
   --font-sans: 'Inter Variable', -apple-system, 'BlinkMacSystemFont',
     avenir next, avenir, segoe ui, helvetica neue, helvetica, 'Ubuntu', roboto,

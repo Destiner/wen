@@ -13,6 +13,11 @@ import { eip7702Actions } from 'viem/experimental';
 
 import { Storage } from './storage';
 
+interface MessageSender {
+  origin: string | undefined;
+  icon: string | undefined;
+}
+
 interface SendTransactionRequest {
   to: Hex;
   from: Hex;
@@ -45,7 +50,8 @@ type AccountRequestResponse = Response<Address[]>;
 type PersonalSignResponse = Response<Hex>;
 
 interface ProviderState {
-  accountRequestId: string | number | null;
+  requestSender: MessageSender | null;
+  requestId: string | number | null;
 
   allowedAccounts: Address[];
   isRequestingAccounts: boolean;
@@ -68,7 +74,8 @@ interface WalletState {
 const storage = new Storage();
 
 const providerState: ProviderState = {
-  accountRequestId: null,
+  requestSender: null,
+  requestId: null,
 
   isRequestingAccounts: false,
   allowedAccounts: [],
@@ -109,11 +116,13 @@ async function getAccounts(): Promise<Address[]> {
 
 async function requestAccounts(
   id: string | number,
+  sender: MessageSender,
   callback: (value: AccountRequestResponse) => void,
 ): Promise<void> {
   callbacks[id] = callback;
   providerState.isRequestingAccounts = true;
-  providerState.accountRequestId = id;
+  providerState.requestId = id;
+  providerState.requestSender = sender;
   chrome.runtime.sendMessage({
     type: 'REQUEST_ACCOUNTS',
     id,
@@ -122,6 +131,7 @@ async function requestAccounts(
 
 async function personalSign(
   id: string | number,
+  sender: MessageSender,
   message: Hex,
   address: Address,
   callback: (value: PersonalSignResponse) => void,
@@ -129,7 +139,8 @@ async function personalSign(
   callbacks[id] = callback;
   providerState.isPersonalSigning = true;
   providerState.personalSignedMessage = message;
-  providerState.accountRequestId = id;
+  providerState.requestId = id;
+  providerState.requestSender = sender;
   chrome.runtime.sendMessage({
     type: 'PERSONAL_SIGN',
     id,
@@ -138,13 +149,15 @@ async function personalSign(
 
 async function sendTransaction(
   id: string | number,
+  sender: MessageSender,
   transaction: SendTransactionRequest,
   callback: (value: Response<Hex>) => void,
 ): Promise<void> {
   callbacks[id] = callback;
   providerState.isSendingTransaction = true;
   providerState.transaction = transaction;
-  providerState.accountRequestId = id;
+  providerState.requestId = id;
+  providerState.requestSender = sender;
   chrome.runtime.sendMessage({
     type: 'SEND_TRANSACTION',
     id,
@@ -157,13 +170,15 @@ async function getPermissions(): Promise<WalletPermission[]> {
 
 async function requestPermissions(
   id: string | number,
+  sender: MessageSender,
   permissionRequest: PermissionRequest,
   callback: (value: Response<PermissionRequest>) => void,
 ): Promise<void> {
   callbacks[id] = callback;
   providerState.isRequestingPermissions = true;
   providerState.permissionRequest = permissionRequest;
-  providerState.accountRequestId = id;
+  providerState.requestId = id;
+  providerState.requestSender = sender;
   chrome.runtime.sendMessage({
     type: 'REQUEST_PERMISSIONS',
     id,
@@ -477,4 +492,4 @@ export {
   requestPermissions,
   revokePermissions,
 };
-export type { SendTransactionRequest, PermissionRequest };
+export type { MessageSender, SendTransactionRequest, PermissionRequest };

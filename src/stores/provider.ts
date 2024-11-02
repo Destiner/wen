@@ -2,10 +2,11 @@ import { defineStore } from 'pinia';
 import { Hex, Transaction } from 'viem';
 import { ref } from 'vue';
 
-import { PermissionRequest } from '@/background/provider';
+import { MessageSender, PermissionRequest } from '@/background/provider';
 
 const useProviderStore = defineStore('provider', () => {
-  const accountRequestId = ref<string | number>('');
+  const requestId = ref<string | number>('');
+  const requestSender = ref<MessageSender | null>(null);
   const isRequestingAccounts = ref<boolean>(false);
   const isPersonalSigning = ref<boolean>(false);
   const personalSignedMessage = ref<Hex | null>(null);
@@ -15,8 +16,12 @@ const useProviderStore = defineStore('provider', () => {
   const isRequestingPermissions = ref<boolean>(false);
   const permissionRequest = ref<PermissionRequest | null>(null);
 
-  function setAccountRequestId(value: string | number): void {
-    accountRequestId.value = value;
+  function setRequestId(value: string | number): void {
+    requestId.value = value;
+  }
+
+  function setRequestSender(value: MessageSender | null): void {
+    requestSender.value = value;
   }
 
   function setIsRequestingAccounts(value: boolean): void {
@@ -52,7 +57,8 @@ const useProviderStore = defineStore('provider', () => {
   }
 
   return {
-    accountRequestId,
+    requestId,
+    requestSender,
     isRequestingAccounts,
     isPersonalSigning,
     personalSignedMessage,
@@ -61,7 +67,8 @@ const useProviderStore = defineStore('provider', () => {
     delegationTxHash,
     isRequestingPermissions,
     permissionRequest,
-    setAccountRequestId,
+    setRequestId,
+    setRequestSender,
     setIsRequestingAccounts,
     setIsPersonalSigning,
     setPersonalSignedMessage,

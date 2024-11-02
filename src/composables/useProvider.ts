@@ -2,12 +2,14 @@ import { whenever } from '@vueuse/core';
 import { Address, Hex, Transaction } from 'viem';
 import { computed, onMounted, Ref, ref } from 'vue';
 
-import { PermissionRequest } from '@/background/provider';
+import { MessageSender, PermissionRequest } from '@/background/provider';
 import useProviderStore from '@/stores/provider';
 
 import { useWallet } from './useWallet';
 
 interface UseProvider {
+  sender: Ref<MessageSender | null>;
+
   isRequestingAccounts: Ref<boolean>;
   allowAccountRequest: () => void;
   denyAccountRequest: () => void;
@@ -39,9 +41,11 @@ function useProvider(): UseProvider {
 
   const wallet = useWallet();
 
-  const accountRequestId = computed<string | number>(
-    () => store.accountRequestId,
+  const requestId = computed<string | number>(() => store.requestId);
+  const requestSender = computed<MessageSender | null>(
+    () => store.requestSender,
   );
+
   const delegationCallback = ref<((txHash: Hex | null) => void) | null>(null);
 
   const isRequestingAccounts = computed<boolean>(
@@ -50,7 +54,7 @@ function useProvider(): UseProvider {
   function allowAccountRequest(): void {
     const addresses = wallet.address.value ? [wallet.address.value] : [];
     chrome.runtime.sendMessage({
-      id: accountRequestId.value,
+      id: requestId.value,
       type: 'ALLOW_ACCOUNT_REQUEST',
       data: addresses,
     });
@@ -58,7 +62,7 @@ function useProvider(): UseProvider {
   }
   function denyAccountRequest(): void {
     chrome.runtime.sendMessage({
-      id: accountRequestId.value,
+      id: requestId.value,
       type: 'DENY_ACCOUNT_REQUEST',
     });
     store.setIsRequestingAccounts(false);
@@ -70,7 +74,7 @@ function useProvider(): UseProvider {
   );
   function allowPersonalSign(): void {
     chrome.runtime.sendMessage({
-      id: accountRequestId.value,
+      id: requestId.value,
       type: 'ALLOW_PERSONAL_SIGN',
       data: personalSignedMessage.value,
     });
@@ -78,7 +82,7 @@ function useProvider(): UseProvider {
   }
   function denyPersonalSign(): void {
     chrome.runtime.sendMessage({
-      id: accountRequestId.value,
+      id: requestId.value,
       type: 'DENY_PERSONAL_SIGN',
     });
     store.setIsPersonalSigning(false);
@@ -90,7 +94,7 @@ function useProvider(): UseProvider {
   const transaction = computed<Transaction | null>(() => store.transaction);
   function allowSendTransaction(): void {
     chrome.runtime.sendMessage({
-      id: accountRequestId.value,
+      id: requestId.value,
       type: 'ALLOW_SEND_TRANSACTION',
       data: transaction.value,
     });
@@ -98,7 +102,7 @@ function useProvider(): UseProvider {
   }
   function denySendTransaction(): void {
     chrome.runtime.sendMessage({
-      id: accountRequestId.value,
+      id: requestId.value,
       type: 'DENY_SEND_TRANSACTION',
     });
     store.setIsSendingTransaction(false);
@@ -136,7 +140,7 @@ function useProvider(): UseProvider {
   );
   function allowRequestPermissions(): void {
     chrome.runtime.sendMessage({
-      id: accountRequestId.value,
+      id: requestId.value,
       type: 'ALLOW_REQUEST_PERMISSIONS',
       data: transaction.value,
     });
@@ -144,7 +148,7 @@ function useProvider(): UseProvider {
   }
   function denyRequestPermissions(): void {
     chrome.runtime.sendMessage({
-      id: accountRequestId.value,
+      id: requestId.value,
       type: 'DENY_REQUEST_PERMISSIONS',
     });
     store.setIsRequestingPermissions(false);
@@ -155,17 +159,17 @@ function useProvider(): UseProvider {
       chrome.runtime.onMessage.addListener((message) => {
         if (message.type === 'REQUEST_ACCOUNTS') {
           store.setIsRequestingAccounts(true);
-          store.setAccountRequestId(message.id);
+          store.setRequestId(message.id);
         }
         if (message.type === 'PERSONAL_SIGN') {
           store.setIsPersonalSigning(true);
           store.setPersonalSignedMessage(message.data);
-          store.setAccountRequestId(message.id);
+          store.setRequestId(message.id);
         }
         if (message.type === 'SEND_TRANSACTION') {
           store.setIsSendingTransaction(true);
           store.setTransaction(message.data);
-          store.setAccountRequestId(message.id);
+          store.setRequestId(message.id);
         }
         if (message.type === 'DELEGATED') {
           const txHash = message.data.txHash;
@@ -174,14 +178,15 @@ function useProvider(): UseProvider {
         if (message.type === 'REQUEST_PERMISSIONS') {
           store.setIsRequestingPermissions(true);
           store.setPermissionRequest(message.data);
-          store.setAccountRequestId(message.id);
+          store.setRequestId(message.id);
         }
       });
     });
     const response = await chrome.runtime.sendMessage({
       type: 'GET_PROVIDER_STATE',
     });
-    store.setAccountRequestId(response.accountRequestId);
+    store.setRequestId(response.requestId);
+    store.setRequestSender(response.requestSender);
     store.setIsRequestingAccounts(response.isRequestingAccounts);
     store.setIsPersonalSigning(response.isPersonalSigning);
     store.setPersonalSignedMessage(response.personalSignedMessage);
@@ -192,6 +197,8 @@ function useProvider(): UseProvider {
   });
 
   return {
+    sender: requestSender,
+
     isRequestingAccounts,
     allowAccountRequest,
     denyAccountRequest,

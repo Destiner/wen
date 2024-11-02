@@ -4,6 +4,7 @@ import { type Runtime, runtime } from 'webextension-polyfill';
 
 import {
   type SendTransactionRequest,
+  type MessageSender,
   getChainId,
   getAccounts,
   requestAccounts,
@@ -37,6 +38,18 @@ function setupProviderConnection(port: Runtime.Port): void {
     if (data.data === '{"type":"ping"}') {
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    if (data.type === 'connected') {
+      return;
+    }
+
+    const sender: MessageSender = {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      origin: port.sender?.origin,
+      icon: port.sender?.tab?.favIconUrl,
+    };
 
     const id = data.id || 'ID';
     if (data.method === 'eth_chainId') {
@@ -57,7 +70,7 @@ function setupProviderConnection(port: Runtime.Port): void {
     }
     if (data.method === 'eth_requestAccounts') {
       openPopup();
-      requestAccounts(id, (response) => {
+      requestAccounts(id, sender, (response) => {
         if (response.status === true) {
           port.postMessage({
             jsonrpc: '2.0',
@@ -78,7 +91,7 @@ function setupProviderConnection(port: Runtime.Port): void {
       const message = params[0] as Hex;
       const address = params[1] as Address;
       openPopup();
-      personalSign(id, message, address, (response) => {
+      personalSign(id, sender, message, address, (response) => {
         if (response.status === true) {
           port.postMessage({
             jsonrpc: '2.0',
@@ -100,7 +113,7 @@ function setupProviderConnection(port: Runtime.Port): void {
       const params = data.params as [SendTransactionRequest];
       const transaction = params[0];
       openPopup();
-      sendTransaction(id, transaction, (response) => {
+      sendTransaction(id, sender, transaction, (response) => {
         if (response.status === true) {
           port.postMessage({
             jsonrpc: '2.0',
@@ -130,7 +143,7 @@ function setupProviderConnection(port: Runtime.Port): void {
       const params = data.params as [PermissionRequest];
       const permissionRequest = params[0];
       openPopup();
-      requestPermissions(id, permissionRequest, (response) => {
+      requestPermissions(id, sender, permissionRequest, (response) => {
         if (response.status === true) {
           port.postMessage({
             jsonrpc: '2.0',

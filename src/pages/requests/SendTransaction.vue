@@ -5,7 +5,21 @@
   >
     <template #default>
       <div class="request">
-        {{ formatJson(transaction) }}
+        <div
+          v-if="sender"
+          class="sender"
+        >
+          <div class="sender-icon">
+            <img
+              :src="sender.icon"
+              alt="Sender icon"
+            />
+          </div>
+          <div class="sender-origin">{{ sender.origin }}</div>
+        </div>
+        <div class="details">
+          {{ formatJson(transaction) }}
+        </div>
       </div>
     </template>
 
@@ -39,6 +53,7 @@ import { useProvider } from '@/composables/useProvider';
 import { formatJson } from '@/utils/formatting';
 
 const {
+  sender,
   transaction,
   allowSendTransaction: providerAllow,
   denySendTransaction: providerDeny,
@@ -57,9 +72,46 @@ function deny(): void {
 
 <style scoped>
 .request {
+  display: flex;
+  flex-direction: column;
   padding: 16px;
-  overflow-x: auto;
+  border-radius: 4px;
   background: var(--background-secondary);
+  gap: 16px;
+}
+
+.sender {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.sender-icon {
+  --size: 48px;
+
+  display: flex;
+  flex: 0 0 var(--size);
+  align-items: center;
+  justify-content: center;
+  width: var(--size);
+  height: var(--size);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+
+  img {
+    width: calc(var(--size) / 2);
+    height: calc(var(--size) / 2);
+  }
+}
+
+.sender-origin {
+  flex: 1 1 auto;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.details {
   font-family: var(--font-mono);
   word-wrap: break-word;
   white-space: pre-wrap;
