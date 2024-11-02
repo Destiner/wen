@@ -17,7 +17,7 @@ useRouting();
 <style>
 :root {
   --text-primary: #fafafa;
-  --text-secondary: #e0e0e0;
+  --text-secondary: #c4c4c4;
   --text-error: tomato;
   --background-primary: #000;
   --background-secondary: #1b1b1b;
