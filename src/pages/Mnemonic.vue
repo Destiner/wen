@@ -25,7 +25,7 @@
       <WenInfoBlock type="warning">
         <template #default>
           This wallet is optimized for developer experience, not security. Do
-          NOT use it with large mainnet funds.
+          NOT use it for accounts with large mainnet funds.
         </template>
       </WenInfoBlock>
       <WenButton
