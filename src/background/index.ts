@@ -163,8 +163,8 @@ function setupProviderConnection(port: Runtime.Port): void {
 
 function openPopup(): void {
   chrome.windows.getCurrent({ populate: true }, function (window) {
-    const width = 360;
-    const height = 600;
+    const width = 340;
+    const height = 640;
     const windowWidth = window.width || width;
     const windowLeft = window.left || 0;
     const left = windowWidth + windowLeft - width - 8;
