@@ -6,6 +6,7 @@
       medium: size === 'medium',
       large: size === 'large',
       primary: type === 'primary',
+      secondary: type === 'secondary',
       ghost: type === 'ghost',
       naked: type === 'naked',
     }"
@@ -17,7 +18,7 @@
 <script setup lang="ts">
 type Size = 'small' | 'medium' | 'large';
 
-type Type = 'primary' | 'ghost' | 'naked';
+type Type = 'primary' | 'secondary' | 'ghost' | 'naked';
 
 const { disabled = false } = defineProps<{
   label: string;
@@ -56,6 +57,11 @@ button {
   &.primary {
     background: #ff7dcb;
     color: white;
+  }
+
+  &.secondary {
+    background: var(--background-secondary);
+    color: var(--text);
   }
 
   &.ghost {

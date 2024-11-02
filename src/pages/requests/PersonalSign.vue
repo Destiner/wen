@@ -1,10 +1,40 @@
 <template>
-  {{ personalSignedMessage }}
-  <button @click="allow">allow</button>
-  <button @click="deny">deny</button>
+  <WenPage
+    title="Message Signature"
+    subtitle="The app wants to sign a message using your account"
+  >
+    <template #default>
+      <div class="request">
+        {{ personalSignedMessage }}
+      </div>
+    </template>
+
+    <template #footer>
+      <div class="actions">
+        <div class="action">
+          <WenButton
+            type="primary"
+            size="large"
+            label="Allow"
+            @click="allow"
+          />
+        </div>
+        <div class="action">
+          <WenButton
+            type="secondary"
+            size="large"
+            label="Decline"
+            @click="deny"
+          />
+        </div>
+      </div>
+    </template>
+  </WenPage>
 </template>
 
 <script setup lang="ts">
+import WenButton from '@/components/__common/WenButton.vue';
+import WenPage from '@/components/__common/WenPage.vue';
 import { useProvider } from '@/composables/useProvider';
 
 const {
@@ -23,3 +53,25 @@ function deny(): void {
   window.close();
 }
 </script>
+
+<style scoped>
+.request {
+  padding: 16px;
+  overflow-x: auto;
+  background: var(--background-secondary);
+  font-family: var(--font-mono);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+}
+
+.action {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+</style>

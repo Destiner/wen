@@ -6,5 +6,8 @@ function formatAddress(address: Address, length: number): string {
   )}`;
 }
 
-// eslint-disable-next-line import-x/prefer-default-export
-export { formatAddress };
+function formatJson(json: unknown): string {
+  return JSON.stringify(json, null, 4);
+}
+
+export { formatAddress, formatJson };
