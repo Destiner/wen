@@ -31,8 +31,12 @@
       </template>
     </template>
   </div>
-  <div class="actions">
+  <div
+    v-if="isValidOwner"
+    class="actions"
+  >
     <button @click="handleSendTransactionClick">Send test transaction</button>
+    <button @click="handleSendUserOpClick">Send test user operation</button>
   </div>
   <DialogConnectors
     v-model:model-value="isDialogConnectorsOpen"
@@ -49,14 +53,39 @@ import {
   useDisconnect,
   useReadContract,
   useSendTransaction,
+  useSignMessage,
 } from '@wagmi/vue';
-import { Address, slice, zeroAddress } from 'viem';
+import {
+  Address,
+  concat,
+  createPublicClient,
+  Hex,
+  http,
+  slice,
+  zeroAddress,
+} from 'viem';
+import {
+  createBundlerClient,
+  createPaymasterClient,
+  entryPoint07Abi,
+  entryPoint07Address,
+} from 'viem/account-abstraction';
 import { odysseyTestnet } from 'viem/chains';
 import { computed, ref } from 'vue';
 
 import kernelMultiChainValidatorAbi from '@/abi/kernelMultiChainValidator';
 import kernelV3ImplementationAbi from '@/abi/kernelV3Implementation';
 import DialogConnectors from '@/components/DialogConnectors.vue';
+import useEnv from '@/composables/useEnv';
+import {
+  Execution,
+  getOpHash,
+  getOpTxHash,
+  prepareOp,
+  submitOp,
+} from '@/utils/aa';
+
+const { bundlerRpc, paymasterRpc } = useEnv();
 
 const connectedAccount = useAccount();
 const accountCodeResult = useBytecode({
@@ -65,11 +94,16 @@ const accountCodeResult = useBytecode({
 const { connect } = useConnect();
 const { disconnect } = useDisconnect();
 const { sendTransactionAsync } = useSendTransaction();
+const { signMessageAsync } = useSignMessage();
 
 const KERNEL_V3_IMPLEMENTATION_ADDRESS =
   '0x94f097e1ebeb4eca3aae54cabb08905b239a7d27';
 const KERNEL_V3_MULTI_CHAIN_VALIDATOR_ADDRESS =
   '0x02d32f9c668c92a60b44825c4f79b501c0f685da';
+const KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID = concat([
+  '0x01',
+  KERNEL_V3_MULTI_CHAIN_VALIDATOR_ADDRESS,
+]);
 
 const isConnected = computed(() => connectedAccount.isConnected.value);
 const accountAddress = computed(() => connectedAccount.address.value);
@@ -96,10 +130,7 @@ const hasValidRootValidator = computed(() => {
   if (!isInitialized.value) {
     return false;
   }
-  return (
-    rootValidatorResult.data.value ===
-    `0x01${KERNEL_V3_MULTI_CHAIN_VALIDATOR_ADDRESS.slice(2)}`
-  );
+  return rootValidatorResult.data.value === KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID;
 });
 
 const validatorStorage = useReadContract({
@@ -135,5 +166,86 @@ async function handleSendTransactionClick(): Promise<void> {
     to: accountAddress.value,
     value: 0n,
   });
+}
+
+const accountNonceResult = useReadContract({
+  address: entryPoint07Address,
+  abi: entryPoint07Abi,
+  functionName: 'getNonce',
+  args: [
+    accountAddress.value || zeroAddress,
+    BigInt(KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID),
+  ],
+});
+
+async function handleSendUserOpClick(): Promise<void> {
+  const opHash = await sendUserOp();
+  if (!opHash) {
+    return;
+  }
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(bundlerRpc),
+  });
+  const txHash = await getOpTxHash(bundlerClient, opHash);
+  if (!txHash) {
+    return;
+  }
+}
+
+async function sendUserOp(): Promise<null | Hex> {
+  if (!accountAddress.value) {
+    return null;
+  }
+  const paymasterClient = createPaymasterClient({
+    transport: http(paymasterRpc),
+  });
+  await accountNonceResult.refetch();
+  const nonce = accountNonceResult.data.value;
+  if (nonce === undefined) {
+    throw new Error('Failed to get nonce');
+  }
+  const executions: Execution[] = [
+    {
+      target: accountAddress.value,
+      value: 0n,
+      callData: '0x',
+    },
+  ];
+  const op = await prepareOp(
+    accountAddress.value,
+    paymasterClient,
+    executions,
+    {
+      nonce,
+    },
+  );
+  const hash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
+  if (!hash) {
+    throw new Error('Failed to get hash');
+  }
+  try {
+    const signature = await signMessageAsync({
+      message: {
+        raw: hash,
+      },
+    });
+    op.signature = signature;
+    const publicClient = createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    });
+    const bundlerClient = createBundlerClient({
+      client: publicClient,
+      transport: http(bundlerRpc),
+    });
+    const opHash = await submitOp(accountAddress.value, bundlerClient, op);
+    return opHash;
+  } catch {
+    return null;
+  }
 }
 </script>
