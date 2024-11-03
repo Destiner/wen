@@ -63,8 +63,11 @@ defineProps<{
 
 .sender-origin {
   flex: 1 1 auto;
+  overflow: hidden;
   font-size: 16px;
   font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .details {
