@@ -61,7 +61,7 @@ function setupProviderConnection(port: Runtime.Port): void {
       });
     }
     if (data.method === 'eth_accounts') {
-      const accounts = await getAccounts();
+      const accounts = await getAccounts(sender.origin);
       port.postMessage({
         jsonrpc: '2.0',
         id: data.id,
@@ -164,7 +164,7 @@ function setupProviderConnection(port: Runtime.Port): void {
       // @ts-ignore
       const params = data.params as [PermissionRequest];
       const permissionRequest = params[0];
-      revokePermissions(permissionRequest);
+      revokePermissions(sender, permissionRequest);
       port.postMessage({
         jsonrpc: '2.0',
         id: data.id,

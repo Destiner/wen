@@ -53,7 +53,7 @@ interface ProviderState {
   requestSender: MessageSender | null;
   requestId: string | number | null;
 
-  allowedAccounts: Address[];
+  connections: Record<string, Address[]>;
   isRequestingAccounts: boolean;
 
   isPersonalSigning: boolean;
@@ -77,8 +77,8 @@ const providerState: ProviderState = {
   requestSender: null,
   requestId: null,
 
+  connections: {},
   isRequestingAccounts: false,
-  allowedAccounts: [],
 
   isPersonalSigning: false,
   personalSignedMessage: null,
@@ -110,8 +110,11 @@ function getChainId(): number {
   return odysseyTestnet.id;
 }
 
-async function getAccounts(): Promise<Address[]> {
-  return providerState.allowedAccounts;
+async function getAccounts(origin: string | undefined): Promise<Address[]> {
+  if (!origin) {
+    return [];
+  }
+  return providerState.connections[origin] || [];
 }
 
 async function requestAccounts(
@@ -186,10 +189,15 @@ async function requestPermissions(
 }
 
 async function revokePermissions(
+  sender: MessageSender,
   permissionRequest: PermissionRequest,
 ): Promise<void> {
+  const origin = sender.origin;
+  if (!origin) {
+    return;
+  }
   if (Object.keys(permissionRequest).includes('eth_accounts')) {
-    providerState.allowedAccounts = [];
+    providerState.connections[origin] = [];
   }
   providerState.permissions = providerState.permissions.filter((permission) => {
     return !Object.keys(permissionRequest).includes(
@@ -199,8 +207,12 @@ async function revokePermissions(
 }
 
 function allowAccountRequest(id: string | number, addresses: Address[]): void {
+  const origin = providerState.requestSender?.origin;
+  if (!origin) {
+    return;
+  }
   providerState.isRequestingAccounts = false;
-  providerState.allowedAccounts = addresses;
+  providerState.connections[origin] = addresses;
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -280,8 +292,12 @@ async function allowRequestPermissions(id: string | number): Promise<void> {
   if (!providerState.permissionRequest) {
     return;
   }
+  const origin = providerState.requestSender?.origin;
+  if (!origin) {
+    return;
+  }
   if (Object.keys(providerState.permissionRequest).includes('eth_accounts')) {
-    providerState.allowedAccounts = getAddresses();
+    providerState.connections[origin] = getAddresses();
   }
   const walletPermissions: WalletPermission[] = Object.keys(
     providerState.permissionRequest,
@@ -289,8 +305,7 @@ async function allowRequestPermissions(id: string | number): Promise<void> {
     return {
       id: uuidv4(),
       parentCapability: permissionName,
-      // TODO
-      invoker: 'https://',
+      invoker: origin as `https://${string}`,
       caveats: [
         {
           type: 'restrictReturnedAccounts',
