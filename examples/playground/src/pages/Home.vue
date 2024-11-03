@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="account">
     <template v-if="!isConnected">
       <p>Not connected</p>
       <button @click="openConnectorDialog">Connect</button>
@@ -31,6 +31,9 @@
       </template>
     </template>
   </div>
+  <div class="actions">
+    <button @click="handleSendTransactionClick">Send test transaction</button>
+  </div>
   <DialogConnectors
     v-model:model-value="isDialogConnectorsOpen"
     @select="handleConnectorSelect"
@@ -45,6 +48,7 @@ import {
   useConnect,
   useDisconnect,
   useReadContract,
+  useSendTransaction,
 } from '@wagmi/vue';
 import { Address, slice, zeroAddress } from 'viem';
 import { odysseyTestnet } from 'viem/chains';
@@ -60,6 +64,7 @@ const accountCodeResult = useBytecode({
 });
 const { connect } = useConnect();
 const { disconnect } = useDisconnect();
+const { sendTransactionAsync } = useSendTransaction();
 
 const KERNEL_V3_IMPLEMENTATION_ADDRESS =
   '0x94f097e1ebeb4eca3aae54cabb08905b239a7d27';
@@ -123,5 +128,12 @@ async function handleConnectorSelect(connector: Connector): Promise<void> {
 }
 async function handleDisconnectClick(): Promise<void> {
   disconnect();
+}
+
+async function handleSendTransactionClick(): Promise<void> {
+  await sendTransactionAsync({
+    to: accountAddress.value,
+    value: 0n,
+  });
 }
 </script>
