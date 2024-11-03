@@ -67,7 +67,6 @@ import {
 import {
   createBundlerClient,
   createPaymasterClient,
-  entryPoint07Abi,
   entryPoint07Address,
 } from 'viem/account-abstraction';
 import { odysseyTestnet } from 'viem/chains';
@@ -168,16 +167,6 @@ async function handleSendTransactionClick(): Promise<void> {
   });
 }
 
-const accountNonceResult = useReadContract({
-  address: entryPoint07Address,
-  abi: entryPoint07Abi,
-  functionName: 'getNonce',
-  args: [
-    accountAddress.value || zeroAddress,
-    BigInt(KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID),
-  ],
-});
-
 async function handleSendUserOpClick(): Promise<void> {
   const opHash = await sendUserOp();
   if (!opHash) {
@@ -203,11 +192,6 @@ async function sendUserOp(): Promise<null | Hex> {
   const paymasterClient = createPaymasterClient({
     transport: http(paymasterRpc),
   });
-  await accountNonceResult.refetch();
-  const nonce = accountNonceResult.data.value;
-  if (nonce === undefined) {
-    throw new Error('Failed to get nonce');
-  }
   const executions: Execution[] = [
     {
       target: accountAddress.value,
@@ -215,13 +199,12 @@ async function sendUserOp(): Promise<null | Hex> {
       callData: '0x',
     },
   ];
+  const nonceKey = BigInt(KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID);
   const op = await prepareOp(
     accountAddress.value,
     paymasterClient,
     executions,
-    {
-      nonce,
-    },
+    nonceKey,
   );
   const hash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
   if (!hash) {

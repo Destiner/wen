@@ -88,10 +88,7 @@ async function prepareOp(
   ownerAddress: Address,
   paymasterClient: PaymasterClient,
   executions: Execution[],
-  overrides?: {
-    nonce?: bigint;
-    signature?: Hex;
-  },
+  nonceKey: bigint,
 ): Promise<Op_0_7> {
   const execMode =
     '0x0100000000000000000000000000000000000000000000000000000000000000';
@@ -128,10 +125,8 @@ async function prepareOp(
     address: entryPoint07Address,
     abi: entryPoint07Abi,
     functionName: 'getNonce',
-    args: [ownerAddress, 0n],
+    args: [ownerAddress, nonceKey],
   });
-
-  const actualNonce = overrides?.nonce || nonce;
 
   const { maxFeePerGas, maxPriorityFeePerGas } =
     await publicClient.estimateFeesPerGas();
@@ -146,7 +141,7 @@ async function prepareOp(
       preVerificationGas,
       maxFeePerGas,
       maxPriorityFeePerGas,
-      nonce: actualNonce,
+      nonce,
       sender: ownerAddress,
     });
 
@@ -161,13 +156,13 @@ async function prepareOp(
     maxPriorityFeePerGas,
     paymasterPostOpGasLimit,
     paymasterVerificationGasLimit,
-    nonce: actualNonce,
+    nonce,
     sender: ownerAddress,
   });
 
   const op: Op_0_7 = {
     sender: ownerAddress,
-    nonce: actualNonce,
+    nonce,
     // Should be already initialized
     initCode: '0x',
     callData,
