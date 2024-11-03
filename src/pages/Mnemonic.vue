@@ -32,7 +32,7 @@
         type="primary"
         size="large"
         label="Save"
-        :disabled="!hasMnemonic"
+        :disabled="!isValidMnemonic"
         @click="store"
       />
     </template>
@@ -59,10 +59,10 @@ const { getMnemonic: getWalletMnemonic, setMnemonic: setWalletMnemonic } =
 const mnemonicInput = ref('');
 const isDirty = ref(false);
 
-const hasMnemonic = computed(() =>
+const isValidMnemonic = computed(() =>
   validateMnemonic(mnemonicInput.value, wordlist),
 );
-const isValid = computed(() => !isDirty.value || hasMnemonic.value);
+const isValid = computed(() => !isDirty.value || isValidMnemonic.value);
 
 onMounted(() => {
   getMnemonic();
@@ -80,7 +80,8 @@ async function store(): Promise<void> {
   if (!isValid.value) {
     return;
   }
-  setWalletMnemonic(mnemonicInput.value);
+  await setWalletMnemonic(mnemonicInput.value);
+  openHomePage();
 }
 
 function handleInputBlur(): void {
