@@ -40,4 +40,9 @@ export default defineManifest(async () => ({
       resources: ['src/inpage/index.ts'],
     },
   ],
+  browser_specific_settings: {
+    gecko: {
+      id: 'wen.scope.sh',
+    },
+  },
 }));
