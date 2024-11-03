@@ -13,8 +13,8 @@ on:
       - "packages/extension/**"
 
 jobs:
-  run:
-    name: Run
+  extension:
+    name: Extension
     runs-on: ubuntu-latest
 
     strategy:
