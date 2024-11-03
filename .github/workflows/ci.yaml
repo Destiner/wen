@@ -2,9 +2,15 @@ name: CI
 
 on:
   push:
-    branches: main
+    branches:
+      - main
+    paths:
+      - "packages/extension/**"
   pull_request:
-    branches: main
+    branches:
+      - main
+    paths:
+      - "packages/extension/**"
 
 jobs:
   run:
@@ -22,13 +28,17 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Clean install
+        working-directory: ./packages/extension
         run: bun install
 
       - name: Lint
+        working-directory: ./packages/extension
         run: bun run lint
 
       - name: Type checking
+        working-directory: ./packages/extension
         run: bun run typecheck
 
       - name: Build
+        working-directory: ./packages/extension
         run: bun run build
