@@ -1,7 +1,7 @@
 <template>
   <WenPage
     title="Import"
-    subtitle="wallet mnemonic to get started"
+    subtitle="a wallet mnemonic to get started"
   >
     <template #default>
       <WenTextArea
