@@ -1,4 +1,4 @@
-name: CI
+name: Extension CI
 
 on:
   push:
@@ -13,8 +13,8 @@ on:
       - "packages/extension/**"
 
 jobs:
-  extension:
-    name: Extension
+  run:
+    name: Run
     runs-on: ubuntu-latest
 
     strategy:
