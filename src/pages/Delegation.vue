@@ -56,6 +56,7 @@
         type="primary"
         size="large"
         label="Delegate"
+        :disabled="isDelegating"
         @click="delegate"
       />
     </template>
@@ -185,6 +186,7 @@ const isValid = computed(
   () => isDelegateeAddressValid.value && isInitializationDataValid.value,
 );
 
+const isDelegating = ref(false);
 async function delegate(): Promise<void> {
   if (!isValid.value) {
     isDelegateeAddressInputDirty.value = true;
@@ -194,7 +196,9 @@ async function delegate(): Promise<void> {
   const data = initializationData.value
     ? (initializationData.value as Hex)
     : '0x';
+  isDelegating.value = true;
   await providerDelegate(delegateeAddress.value as Address, data, () => {
+    isDelegating.value = false;
     openHomePage();
   });
 }
