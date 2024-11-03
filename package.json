@@ -2,6 +2,7 @@
   "name": "wen",
   "private": true,
   "workspaces": [
+    "examples/*",
     "packages/*"
   ]
 }
