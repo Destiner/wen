@@ -43,6 +43,7 @@ const { title = '', subtitle = '' } = defineProps<{
   justify-content: space-between;
   height: 100%;
   padding: 16px;
+  gap: 16px;
 }
 
 .main {
