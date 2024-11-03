@@ -21,7 +21,7 @@ export default defineManifest(async () => ({
     128: 'public/icons/icon128.png',
   },
   host_permissions: ['<all_urls>'],
-  permissions: ['tabs', 'storage'],
+  permissions: ['storage'],
   action: { default_popup: 'index.html' },
   background: {
     service_worker: 'src/background/index.ts',
