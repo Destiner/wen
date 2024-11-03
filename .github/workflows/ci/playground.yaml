@@ -1,10 +1,16 @@
-name: CI
+name: Playground CI
 
 on:
   push:
-    branches: main
+    branches:
+      - main
+    paths:
+      - "examples/playground/**"
   pull_request:
-    branches: main
+    branches:
+      - main
+    paths:
+      - "examples/playground/**"
 
 jobs:
   run:
@@ -22,13 +28,17 @@ jobs:
         uses: oven-sh/setup-bun@v2
 
       - name: Clean install
+        working-directory: ./examples/playground
         run: bun install
 
       - name: Lint
+        working-directory: ./examples/playground
         run: bun run lint
 
       - name: Type checking
+        working-directory: ./examples/playground
         run: bun run typecheck
 
       - name: Build
+        working-directory: ./examples/playground
         run: bun run build
