@@ -1,6 +1,10 @@
 {
   "name": "wen",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/Destiner/wen.git"
+  },
   "workspaces": [
     "examples/*",
     "packages/*"

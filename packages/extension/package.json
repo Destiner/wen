@@ -13,10 +13,6 @@
     "vue"
   ],
   "license": "UNLICENSED",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/Destiner/wen.git"
-  },
   "type": "module",
   "scripts": {
     "build": "vite build",
