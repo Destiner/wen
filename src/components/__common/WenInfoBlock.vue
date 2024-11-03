@@ -28,12 +28,12 @@ defineProps<{
   border-radius: 2px;
 
   &.info {
-    background: #e0f7fa;
+    background: #00acc118;
     color: #00acc1;
   }
 
   &.warning {
-    background: #222017;
+    background: #e6740018;
     color: #e67400;
   }
 }
