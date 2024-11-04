@@ -123,7 +123,7 @@ export type { Option };
   width: var(--radix-select-trigger-width);
   padding: 8px 6px;
   animation: scale-in 0.125s ease-out;
-  border: 1px solid var(--text-primary);
+  border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--background-primary);
 }
