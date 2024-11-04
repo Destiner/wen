@@ -83,17 +83,16 @@ import WenPage from '@/components/__common/WenPage.vue';
 import WenSelect from '@/components/__common/WenSelect.vue';
 import { useProvider } from '@/composables/useProvider';
 import { useWallet } from '@/composables/useWallet';
+import {
+  KERNEL_V3_IMPLEMENTATION_ADDRESS,
+  MULTI_CHAIN_VALIDATOR_ADDRESS,
+} from '@/utils/consts';
 import { formatAddress } from '@/utils/formatting';
 
 const router = useRouter();
 
 const { delegate: providerDelegate } = useProvider();
 const { address } = useWallet();
-
-const KERNER_V3_IMPLEMENTATION_ADDRESS =
-  '0x21523EAa06791d2524eB2788af8Aa0e1Cfbb61b7';
-const MULTI_CHAIN_VALIDATOR_ADDRESS =
-  '0x02d32f9c668c92a60b44825c4f79b501c0f685da';
 
 const KERNEL_V3 = 'kernel_v3';
 const CUSTOM = 'custom';
@@ -129,7 +128,7 @@ function handleInitializationDataInputBlur(): void {
 
 const delegateeAddress = computed(() => {
   if (selectedDelegationType.value === KERNEL_V3) {
-    return KERNER_V3_IMPLEMENTATION_ADDRESS;
+    return KERNEL_V3_IMPLEMENTATION_ADDRESS;
   }
   return delegateeAddressInput.value;
 });

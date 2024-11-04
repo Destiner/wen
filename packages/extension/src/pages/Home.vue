@@ -25,6 +25,13 @@
     </template>
 
     <template #footer>
+      <div v-if="areSessionKeysSupported">
+        <WenToggle
+          v-model:model-value="areSessionKeysEnabled"
+          label="Session Keys"
+          :disabled="isSessionKeyToggleDisabled"
+        />
+      </div>
       <WenInfoBlock type="info">
         <template
           v-if="delegation"
@@ -69,22 +76,42 @@
 import { useIntervalFn } from '@vueuse/core';
 import {
   Address,
+  concat,
   createPublicClient,
   formatEther,
   http,
   size,
   slice,
 } from 'viem';
-import { getBalance, getCode } from 'viem/actions';
+import {
+  createBundlerClient,
+  entryPoint07Address,
+} from 'viem/account-abstraction';
+import { getBalance, getCode, readContract } from 'viem/actions';
 import { odysseyTestnet } from 'viem/chains';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
+import kernelV3ImplementationAbi from '@/abi/kernelV3Implementation';
 import WenButton from '@/components/__common/WenButton.vue';
 import WenIcon from '@/components/__common/WenIcon.vue';
 import WenInfoBlock from '@/components/__common/WenInfoBlock.vue';
 import WenPage from '@/components/__common/WenPage.vue';
+import WenToggle from '@/components/__common/WenToggle.vue';
+import { useProvider } from '@/composables/useProvider';
 import { useWallet } from '@/composables/useWallet';
+import {
+  getDisableSmartSessionModuleExecution,
+  getEnableSmartSessionModuleExecution,
+  getOpHash,
+  prepareOp,
+  submitOp,
+} from '@/utils/aa';
+import {
+  KERNEL_V3_IMPLEMENTATION_ADDRESS,
+  MULTI_CHAIN_VALIDATOR_ADDRESS,
+  SMART_SESSION_VALIDATOR_ADDRESS,
+} from '@/utils/consts';
 import { formatAddress } from '@/utils/formatting';
 
 const DELEGATION_HEADER = '0xef0100';
@@ -92,6 +119,7 @@ const DELEGATION_HEADER = '0xef0100';
 const router = useRouter();
 
 const wallet = useWallet();
+const { personalSign } = useProvider();
 
 const walletAddress = computed(() => wallet.address.value);
 
@@ -101,6 +129,7 @@ useIntervalFn(
   () => {
     fetchBalance();
     fetchDelegation();
+    fetchIsSessionKeysEnabled();
   },
   10 * 1000,
   {
@@ -139,6 +168,27 @@ async function fetchDelegation(): Promise<void> {
         ? slice(code, size(DELEGATION_HEADER))
         : null;
 }
+const areSessionKeysEnabled = ref(false);
+const isSessionKeyToggledSetProgrammatically = ref(false);
+async function fetchIsSessionKeysEnabled(): Promise<void> {
+  if (!walletAddress.value) {
+    return;
+  }
+  const client = createPublicClient({
+    chain: odysseyTestnet,
+    transport: http(),
+  });
+  const isInstalled = await readContract(client, {
+    address: walletAddress.value,
+    abi: kernelV3ImplementationAbi,
+    functionName: 'isModuleInstalled',
+    args: [1n, SMART_SESSION_VALIDATOR_ADDRESS, '0x'],
+  });
+  if (areSessionKeysEnabled.value !== isInstalled) {
+    isSessionKeyToggledSetProgrammatically.value = true;
+    areSessionKeysEnabled.value = isInstalled;
+  }
+}
 
 function handleCopyWalletClick(): void {
   if (!walletAddress.value) {
@@ -167,6 +217,100 @@ function openDelegationPage(): void {
 function openMnemonicPage(): void {
   router.push({
     name: 'mnemonic',
+  });
+}
+
+const areSessionKeysSupported = computed(
+  () => delegation.value === KERNEL_V3_IMPLEMENTATION_ADDRESS,
+);
+const isSessionKeyToggleDisabled = ref(false);
+watch(areSessionKeysEnabled, async (newValue) => {
+  if (isSessionKeyToggledSetProgrammatically.value) {
+    isSessionKeyToggledSetProgrammatically.value = false;
+    return;
+  }
+  isSessionKeyToggleDisabled.value = true;
+  if (newValue) {
+    await enableSessionKeyModule();
+  } else {
+    await disableSessionKeyModule();
+  }
+  isSessionKeyToggleDisabled.value = false;
+});
+
+async function enableSessionKeyModule(): Promise<void> {
+  if (!walletAddress.value) {
+    return;
+  }
+  const KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID = concat([
+    '0x01',
+    MULTI_CHAIN_VALIDATOR_ADDRESS,
+  ]);
+  const nonceKey = BigInt(KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID);
+  const execution = await getEnableSmartSessionModuleExecution(
+    walletAddress.value,
+  );
+  const op = await prepareOp(walletAddress.value, null, [execution], nonceKey);
+  const opHash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
+  if (!opHash) {
+    return;
+  }
+  personalSign(opHash, async (signature) => {
+    if (!walletAddress.value) {
+      return;
+    }
+    if (!signature) {
+      return;
+    }
+    op.signature = signature;
+    // Submit op like a bundler
+    const bundlerClient = createBundlerClient({
+      client: createPublicClient({
+        chain: odysseyTestnet,
+        transport: http(),
+      }),
+      transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
+    });
+    const opHash = await submitOp(walletAddress.value, bundlerClient, op);
+    console.log('opHash', opHash);
+  });
+}
+
+async function disableSessionKeyModule(): Promise<void> {
+  if (!walletAddress.value) {
+    return;
+  }
+  const KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID = concat([
+    '0x01',
+    MULTI_CHAIN_VALIDATOR_ADDRESS,
+  ]);
+  const nonceKey = BigInt(KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID);
+  const execution = await getDisableSmartSessionModuleExecution(
+    walletAddress.value,
+  );
+  const op = await prepareOp(walletAddress.value, null, [execution], nonceKey);
+  const opHash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
+  if (!opHash) {
+    return;
+  }
+  personalSign(opHash, async (signature) => {
+    if (!walletAddress.value) {
+      return;
+    }
+    if (!signature) {
+      return;
+    }
+    op.signature = signature;
+    // Submit op like a bundler
+    const bundlerClient = createBundlerClient({
+      client: createPublicClient({
+        chain: odysseyTestnet,
+        transport: http(),
+      }),
+      transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
+    });
+    const opHash = await submitOp(walletAddress.value, bundlerClient, op);
+    console.log('opHash', opHash);
   });
 }
 </script>

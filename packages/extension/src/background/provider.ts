@@ -378,6 +378,30 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
   });
 }
 
+async function providerPersonalSign(message: Hex): Promise<void> {
+  if (!walletState.mnemonic) {
+    chrome.runtime.sendMessage({
+      type: 'PROVIDER_PERSONAL_SIGN_RESULT',
+      data: {
+        signature: null,
+      },
+    });
+    return;
+  }
+  const account = mnemonicToAccount(walletState.mnemonic);
+  const signature = await account.signMessage({
+    message: {
+      raw: message,
+    },
+  });
+  chrome.runtime.sendMessage({
+    type: 'PROVIDER_PERSONAL_SIGN_RESULT',
+    data: {
+      signature,
+    },
+  });
+}
+
 function getWalletAddress(): Address | null {
   if (!walletState.mnemonic) {
     return null;
@@ -407,6 +431,9 @@ chrome.runtime.onMessage.addListener(async (request, _, sendResponse) => {
     const delegatee = request.data.delegatee;
     const data = request.data.data;
     await delegate(delegatee, data);
+  } else if (request.type === 'PROVIDER_PERSONAL_SIGN') {
+    const message = request.data.message;
+    await providerPersonalSign(message);
   } else if (request.type === 'GET_PROVIDER_STATE') {
     sendResponse(providerState);
   } else if (request.type === 'GET_WALLET_ADDRESS') {

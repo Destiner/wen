@@ -34,6 +34,11 @@ interface UseProvider {
   permissionRequest: Ref<PermissionRequest | null>;
   allowRequestPermissions: () => void;
   denyRequestPermissions: () => void;
+
+  personalSign: (
+    message: Hex,
+    cb: (signature: Hex | null) => void,
+  ) => Promise<void>;
 }
 
 function useProvider(): UseProvider {
@@ -47,6 +52,9 @@ function useProvider(): UseProvider {
   );
 
   const delegationCallback = ref<((txHash: Hex | null) => void) | null>(null);
+  const providerPersonalSignCallback = ref<
+    ((signature: Hex | null) => void) | null
+  >(null);
 
   const isRequestingAccounts = computed<boolean>(
     () => store.isRequestingAccounts,
@@ -128,6 +136,32 @@ function useProvider(): UseProvider {
       if (delegationCallback.value) {
         delegationCallback.value(txHash);
         delegationCallback.value = null;
+        store.setDelegationTxHash(null);
+      }
+    }
+  });
+
+  const providerPersonalSignSignature = computed<Hex | null>(
+    () => store.providerPersonalSignSignature,
+  );
+  async function personalSign(
+    message: Hex,
+    cb: (signature: Hex | null) => void,
+  ): Promise<void> {
+    chrome.runtime.sendMessage({
+      type: 'PROVIDER_PERSONAL_SIGN',
+      data: {
+        message,
+      },
+    });
+    providerPersonalSignCallback.value = cb;
+  }
+  whenever(providerPersonalSignSignature, (signature) => {
+    if (signature) {
+      if (providerPersonalSignCallback.value) {
+        providerPersonalSignCallback.value(signature);
+        providerPersonalSignCallback.value = null;
+        store.setProviderPersonalSignSignature(null);
       }
     }
   });
@@ -180,6 +214,10 @@ function useProvider(): UseProvider {
           store.setPermissionRequest(message.data);
           store.setRequestId(message.id);
         }
+        if (message.type === 'PROVIDER_PERSONAL_SIGN_RESULT') {
+          const signature = message.data.signature;
+          store.setProviderPersonalSignSignature(signature);
+        }
       });
     });
     const response = await chrome.runtime.sendMessage({
@@ -219,6 +257,8 @@ function useProvider(): UseProvider {
     permissionRequest,
     allowRequestPermissions,
     denyRequestPermissions,
+
+    personalSign,
   };
 }
 

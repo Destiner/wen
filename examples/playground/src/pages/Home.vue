@@ -96,7 +96,7 @@ const { sendTransactionAsync } = useSendTransaction();
 const { signMessageAsync } = useSignMessage();
 
 const KERNEL_V3_IMPLEMENTATION_ADDRESS =
-  '0x94f097e1ebeb4eca3aae54cabb08905b239a7d27';
+  '0x21523eaa06791d2524eb2788af8aa0e1cfbb61b7';
 const KERNEL_V3_MULTI_CHAIN_VALIDATOR_ADDRESS =
   '0x02d32f9c668c92a60b44825c4f79b501c0f685da';
 const KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID = concat([
