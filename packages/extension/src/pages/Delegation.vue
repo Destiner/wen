@@ -91,7 +91,7 @@ const { delegate: providerDelegate } = useProvider();
 const { address } = useWallet();
 
 const KERNER_V3_IMPLEMENTATION_ADDRESS =
-  '0x94F097E1ebEB4ecA3AAE54cabb08905B239A7D27';
+  '0x21523EAa06791d2524eB2788af8Aa0e1Cfbb61b7';
 const MULTI_CHAIN_VALIDATOR_ADDRESS =
   '0x02d32f9c668c92a60b44825c4f79b501c0f685da';
 
@@ -163,6 +163,11 @@ const initializationData = computed(() => {
               name: 'hookData',
               type: 'bytes',
             },
+            {
+              internalType: 'bytes[]',
+              name: 'initConfig',
+              type: 'bytes[]',
+            },
           ],
           name: 'initialize',
           outputs: [],
@@ -176,6 +181,7 @@ const initializationData = computed(() => {
         zeroAddress,
         account,
         '0x',
+        [],
       ],
     });
   }
