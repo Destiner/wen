@@ -29,17 +29,17 @@
         </template>
       </WenInfoBlock>
       <WenButton
+        type="secondary"
+        size="large"
+        label="Remove Mnemonic"
+        @click="remove"
+      />
+      <WenButton
         type="primary"
         size="large"
         label="Save"
         :disabled="!isValidMnemonic"
         @click="store"
-      />
-      <WenButton
-        type="secondary"
-        size="large"
-        label="Remove Mnemonic"
-        @click="remove"
       />
     </template>
   </WenPage>

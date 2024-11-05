@@ -12,6 +12,12 @@
         error-text="Invalid mnemonic"
         @blur="handleInputBlur"
       />
+      <WenButton
+        type="secondary"
+        size="medium"
+        label="Generate"
+        @click="handleGenerateClick"
+      />
     </template>
 
     <template #footer>
@@ -37,6 +43,7 @@
 <script setup lang="ts">
 import { validateMnemonic } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english';
+import { generateMnemonic } from 'viem/accounts';
 import { computed, ref } from 'vue';
 
 import WenButton from '@/components/__common/WenButton.vue';
@@ -65,5 +72,9 @@ async function store(): Promise<void> {
 
 function handleInputBlur(): void {
   isDirty.value = true;
+}
+
+function handleGenerateClick(): void {
+  mnemonicInput.value = generateMnemonic(wordlist);
 }
 </script>
