@@ -41,23 +41,34 @@
     </template>
 
     <template #footer>
-      <WenInfoBlock type="info">
+      <WenInfoBlock
+        v-if="isValid"
+        type="info"
+      >
         <template #default>
           <ul>
             <li>
               Your EOA will be delegated to
               {{ formatAddress(delegateeAddress as Address, 20) }}
             </li>
-            <li>Your EOA will be the owner of the delegated smart account</li>
+            <li v-if="!isAlreadyInitialized">
+              Your EOA will be the owner of the delegated smart account
+            </li>
           </ul>
         </template>
+      </WenInfoBlock>
+      <WenInfoBlock
+        v-else
+        type="error"
+      >
+        <template #default> {{ errorText }} </template>
       </WenInfoBlock>
       <WenButton
         v-if="delegation"
         type="secondary"
         size="large"
         label="Remove Delegation"
-        :disabled="isUndelegating || !isValid"
+        :disabled="isUndelegating"
         @click="removeDelegation"
       />
       <WenButton
@@ -85,8 +96,9 @@ import {
   size,
   slice,
   zeroAddress,
+  zeroHash,
 } from 'viem';
-import { getCode } from 'viem/actions';
+import { getCode, getStorageAt } from 'viem/actions';
 import { odysseyTestnet } from 'viem/chains';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -102,6 +114,7 @@ import {
   DELEGATION_HEADER,
   KERNEL_V3_IMPLEMENTATION_ADDRESS,
   MULTI_CHAIN_VALIDATOR_ADDRESS,
+  KERNEL_V3_VALIDATION_MANAGER_STORAGE_SLOT,
 } from '@/utils/consts';
 import { formatAddress } from '@/utils/formatting';
 
@@ -115,10 +128,20 @@ const wallet = useWallet();
 
 const walletAddress = computed(() => wallet.address.value);
 
+const KERNEL_V3 = 'kernel_v3';
+const CUSTOM = 'custom';
+const selectedDelegationType = ref(KERNEL_V3);
+const delegationTypes = ref([
+  { value: KERNEL_V3, label: 'Kernel V3' },
+  { value: CUSTOM, label: 'Custom' },
+]);
+
 const delegation = ref<Address | null>(null);
+const isAlreadyInitialized = ref(false);
 useIntervalFn(
   () => {
     fetchDelegation();
+    fetchInitialization();
   },
   10 * 1000,
   {
@@ -144,14 +167,23 @@ async function fetchDelegation(): Promise<void> {
         ? slice(code, size(DELEGATION_HEADER))
         : null;
 }
-
-const KERNEL_V3 = 'kernel_v3';
-const CUSTOM = 'custom';
-const selectedDelegationType = ref(KERNEL_V3);
-const delegationTypes = ref([
-  { value: KERNEL_V3, label: 'Kernel V3' },
-  { value: CUSTOM, label: 'Custom' },
-]);
+async function fetchInitialization(): Promise<void> {
+  if (!walletAddress.value) {
+    return;
+  }
+  const client = createPublicClient({
+    chain: odysseyTestnet,
+    transport: http(),
+  });
+  if (selectedDelegationType.value !== KERNEL_V3) {
+    return;
+  }
+  const validationStorage = await getStorageAt(client, {
+    address: walletAddress.value,
+    slot: KERNEL_V3_VALIDATION_MANAGER_STORAGE_SLOT,
+  });
+  isAlreadyInitialized.value = validationStorage !== zeroHash;
+}
 
 const delegateeAddressInput = ref('');
 const initializationDataInput = ref('');
@@ -190,6 +222,9 @@ const initializationData = computed(() => {
   if (selectedDelegationType.value === KERNEL_V3) {
     const account = address.value;
     if (!account) {
+      return '0x';
+    }
+    if (isAlreadyInitialized.value) {
       return '0x';
     }
     return encodeFunctionData({
@@ -241,9 +276,29 @@ const initializationData = computed(() => {
   return initializationDataInput.value;
 });
 
-const isValid = computed(
-  () => isDelegateeAddressValid.value && isInitializationDataValid.value,
+const isSameAsCurrentDelegation = computed(
+  () => delegation.value === delegateeAddress.value,
 );
+
+const isValid = computed(
+  () =>
+    isDelegateeAddressValid.value &&
+    isInitializationDataValid.value &&
+    !isSameAsCurrentDelegation.value,
+);
+
+const errorText = computed(() => {
+  if (!isDelegateeAddressValid.value) {
+    return 'Invalid address';
+  }
+  if (!isInitializationDataValid.value) {
+    return 'Invalid data';
+  }
+  if (isSameAsCurrentDelegation.value) {
+    return 'Already delegated to this address';
+  }
+  return '';
+});
 
 const isDelegating = ref(false);
 async function delegate(): Promise<void> {

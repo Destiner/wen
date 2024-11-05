@@ -4,6 +4,7 @@
     :class="{
       info: type === 'info',
       warning: type === 'warning',
+      error: type === 'error',
     }"
   >
     <slot />
@@ -12,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-type Type = 'info' | 'warning';
+type Type = 'info' | 'warning' | 'error';
 
 defineProps<{
   type: Type;
@@ -35,6 +36,11 @@ defineProps<{
   &.warning {
     background: #e6740018;
     color: #e67400;
+  }
+
+  &.error {
+    background: #f4433618;
+    color: #f44336;
   }
 }
 </style>
