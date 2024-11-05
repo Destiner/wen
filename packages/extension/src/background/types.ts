@@ -11,6 +11,7 @@ const DENY_SEND_TRANSACTION = 'DENY_SEND_TRANSACTION';
 const ALLOW_REQUEST_PERMISSIONS = 'ALLOW_REQUEST_PERMISSIONS';
 const DENY_REQUEST_PERMISSIONS = 'DENY_REQUEST_PERMISSIONS';
 const DELEGATE = 'DELEGATE';
+const UNDELEGATE = 'UNDELEGATE';
 const PROVIDER_PERSONAL_SIGN = 'PROVIDER_PERSONAL_SIGN';
 const GET_PROVIDER_STATE = 'GET_PROVIDER_STATE';
 const GET_WALLET_ADDRESS = 'GET_WALLET_ADDRESS';
@@ -22,6 +23,7 @@ const PERSONAL_SIGN = 'PERSONAL_SIGN';
 const SEND_TRANSACTION = 'SEND_TRANSACTION';
 const REQUEST_PERMISSIONS = 'REQUEST_PERMISSIONS';
 const DELEGATED = 'DELEGATED';
+const UNDELEGATED = 'UNDELEGATED';
 const PROVIDER_PERSONAL_SIGN_RESULT = 'PROVIDER_PERSONAL_SIGN_RESULT';
 
 interface BaseRequestMessage<T = RequestMessageType, D = undefined> {
@@ -46,6 +48,7 @@ type FrontendRequestMessageType =
   | typeof ALLOW_REQUEST_PERMISSIONS
   | typeof DENY_REQUEST_PERMISSIONS
   | typeof DELEGATE
+  | typeof UNDELEGATE
   | typeof PROVIDER_PERSONAL_SIGN
   | typeof GET_PROVIDER_STATE
   | typeof GET_WALLET_ADDRESS
@@ -90,6 +93,7 @@ type DelegateMessage = BaseIdRequestMessage<
   typeof DELEGATE,
   { delegatee: Address; data: Hex }
 >;
+type UndelegateMessage = BaseIdRequestMessage<typeof UNDELEGATE>;
 type ProviderPersonalSignMessage = BaseIdRequestMessage<
   typeof PROVIDER_PERSONAL_SIGN,
   { message: Hex }
@@ -129,6 +133,12 @@ type DelegatedMessage = BaseRequestMessage<
     txHash: Hex | null;
   }
 >;
+type UndelegatedMessage = BaseRequestMessage<
+  typeof UNDELEGATED,
+  {
+    txHash: Hex | null;
+  }
+>;
 type ProviderPersonalSignResultMessage = BaseRequestMessage<
   typeof PROVIDER_PERSONAL_SIGN_RESULT,
   { signature: Hex | null }
@@ -144,6 +154,7 @@ type FrontendRequestMessage =
   | AllowRequestPermissionsMessage
   | DenyRequestPermissionsMessage
   | DelegateMessage
+  | UndelegateMessage
   | ProviderPersonalSignMessage
   | GetProviderStateMessage
   | GetWalletAddressMessage
@@ -156,6 +167,7 @@ type BackendRequestMessage =
   | SendTransactionMessage
   | RequestPermissionsMessage
   | DelegatedMessage
+  | UndelegatedMessage
   | ProviderPersonalSignResultMessage;
 
 type RequestMessage = FrontendRequestMessage | BackendRequestMessage;
@@ -170,6 +182,7 @@ export {
   ALLOW_REQUEST_PERMISSIONS,
   DENY_REQUEST_PERMISSIONS,
   DELEGATE,
+  UNDELEGATE,
   PROVIDER_PERSONAL_SIGN,
   GET_PROVIDER_STATE,
   GET_WALLET_ADDRESS,
@@ -180,6 +193,7 @@ export {
   SEND_TRANSACTION,
   REQUEST_PERMISSIONS,
   DELEGATED,
+  UNDELEGATED,
   PROVIDER_PERSONAL_SIGN_RESULT,
 };
 export type {
@@ -196,6 +210,7 @@ export type {
   AllowRequestPermissionsMessage,
   DenyRequestPermissionsMessage,
   DelegateMessage,
+  UndelegateMessage,
   ProviderPersonalSignMessage,
   GetProviderStateMessage,
   GetWalletAddressMessage,
@@ -206,5 +221,6 @@ export type {
   SendTransactionMessage,
   RequestPermissionsMessage,
   DelegatedMessage,
+  UndelegatedMessage,
   ProviderPersonalSignResultMessage,
 };

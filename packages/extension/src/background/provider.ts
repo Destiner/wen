@@ -6,6 +6,7 @@ import {
   Hex,
   http,
   WalletPermission,
+  zeroAddress,
 } from 'viem';
 import { mnemonicToAccount } from 'viem/accounts';
 import { odysseyTestnet } from 'viem/chains';
@@ -29,6 +30,7 @@ import {
   SET_WALLET_MNEMONIC,
   FrontendRequestMessage,
   BackendRequestMessage,
+  UNDELEGATE,
 } from './types';
 
 interface MessageSender {
@@ -405,6 +407,47 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
   });
 }
 
+async function undelegate(): Promise<void> {
+  if (!walletState.mnemonic) {
+    chrome.runtime.sendMessage<BackendRequestMessage>({
+      type: 'UNDELEGATED',
+      data: {
+        txHash: null,
+      },
+    });
+    return;
+  }
+  const account = mnemonicToAccount(walletState.mnemonic);
+  const walletClient = createWalletClient({
+    account,
+    chain: odysseyTestnet,
+    transport: http(),
+  }).extend(eip7702Actions());
+
+  const authorization = await walletClient.signAuthorization({
+    contractAddress: zeroAddress,
+  });
+  const txHash = await walletClient.sendTransaction({
+    authorizationList: [authorization],
+    data: '0x',
+    to: walletClient.account.address,
+  });
+
+  const publicClient = createPublicClient({
+    chain: odysseyTestnet,
+    transport: http(),
+  });
+  await publicClient.waitForTransactionReceipt({
+    hash: txHash,
+  });
+  chrome.runtime.sendMessage<BackendRequestMessage>({
+    type: 'UNDELEGATED',
+    data: {
+      txHash,
+    },
+  });
+}
+
 async function providerPersonalSign(message: Hex): Promise<void> {
   if (!walletState.mnemonic) {
     chrome.runtime.sendMessage<BackendRequestMessage>({
@@ -459,6 +502,8 @@ chrome.runtime.onMessage.addListener(
       const delegatee = request.data.delegatee;
       const data = request.data.data;
       await delegate(delegatee, data);
+    } else if (request.type === UNDELEGATE) {
+      await undelegate();
     } else if (request.type === PROVIDER_PERSONAL_SIGN) {
       const message = request.data.message;
       await providerPersonalSign(message);

@@ -24,7 +24,7 @@
           v-model="delegateeAddressInput"
           label="Delegatee address"
           placeholder="0x…"
-          :is-valid="isDelegateeAddressValid"
+          :is-valid="isDelegateeAddressShownValid"
           error-text="Invalid address"
           @blur="handleDelegateeAddressInputBlur"
         />
@@ -33,7 +33,7 @@
           v-model="initializationDataInput"
           label="Initialization data"
           placeholder="0x…"
-          :is-valid="isInitializationDataValid"
+          :is-valid="isInitializationDataShownValid"
           error-text="Invalid data"
           @blur="handleInitializationDataInputBlur"
         />
@@ -53,10 +53,18 @@
         </template>
       </WenInfoBlock>
       <WenButton
+        v-if="delegation"
+        type="secondary"
+        size="large"
+        label="Remove Delegation"
+        :disabled="isUndelegating || !isValid"
+        @click="removeDelegation"
+      />
+      <WenButton
         type="primary"
         size="large"
         label="Delegate"
-        :disabled="isDelegating"
+        :disabled="isDelegating || !isValid"
         @click="delegate"
       />
     </template>
@@ -64,15 +72,22 @@
 </template>
 
 <script setup lang="ts">
+import { useIntervalFn } from '@vueuse/core';
 import {
   Address,
   concat,
+  createPublicClient,
   encodeFunctionData,
   Hex,
+  http,
   isAddress,
   isHex,
+  size,
+  slice,
   zeroAddress,
 } from 'viem';
+import { getCode } from 'viem/actions';
+import { odysseyTestnet } from 'viem/chains';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -84,6 +99,7 @@ import WenSelect from '@/components/__common/WenSelect.vue';
 import { useProvider } from '@/composables/useProvider';
 import { useWallet } from '@/composables/useWallet';
 import {
+  DELEGATION_HEADER,
   KERNEL_V3_IMPLEMENTATION_ADDRESS,
   MULTI_CHAIN_VALIDATOR_ADDRESS,
 } from '@/utils/consts';
@@ -91,8 +107,43 @@ import { formatAddress } from '@/utils/formatting';
 
 const router = useRouter();
 
-const { delegate: providerDelegate } = useProvider();
+const { delegate: providerDelegate, undelegate: providerUndelegate } =
+  useProvider();
 const { address } = useWallet();
+
+const wallet = useWallet();
+
+const walletAddress = computed(() => wallet.address.value);
+
+const delegation = ref<Address | null>(null);
+useIntervalFn(
+  () => {
+    fetchDelegation();
+  },
+  10 * 1000,
+  {
+    immediate: true,
+    immediateCallback: true,
+  },
+);
+async function fetchDelegation(): Promise<void> {
+  if (!walletAddress.value) {
+    return;
+  }
+  const client = createPublicClient({
+    chain: odysseyTestnet,
+    transport: http(),
+  });
+  const code = await getCode(client, {
+    address: walletAddress.value,
+  });
+  delegation.value =
+    code === undefined
+      ? null
+      : slice(code, 0, size(DELEGATION_HEADER)) === DELEGATION_HEADER
+        ? slice(code, size(DELEGATION_HEADER))
+        : null;
+}
 
 const KERNEL_V3 = 'kernel_v3';
 const CUSTOM = 'custom';
@@ -107,15 +158,18 @@ const initializationDataInput = ref('');
 const isDelegateeAddressInputDirty = ref(false);
 const isInitializationDataInputDirty = ref(false);
 
-const isDelegateeAddressValid = computed(
-  () =>
-    !isDelegateeAddressInputDirty.value ||
-    isAddress(delegateeAddressInput.value),
+const isDelegateeAddressValid = computed(() =>
+  isAddress(delegateeAddress.value),
 );
-const isInitializationDataValid = computed(
+const isDelegateeAddressShownValid = computed(
+  () => !isDelegateeAddressInputDirty.value || isDelegateeAddressValid.value,
+);
+const isInitializationDataValid = computed(() =>
+  isHex(initializationData.value),
+);
+const isInitializationDataShownValid = computed(
   () =>
-    !isInitializationDataInputDirty.value ||
-    isHex(initializationDataInput.value),
+    !isInitializationDataInputDirty.value || isInitializationDataValid.value,
 );
 
 function handleDelegateeAddressInputBlur(): void {
@@ -204,6 +258,14 @@ async function delegate(): Promise<void> {
   isDelegating.value = true;
   await providerDelegate(delegateeAddress.value as Address, data, () => {
     isDelegating.value = false;
+    openHomePage();
+  });
+}
+const isUndelegating = ref(false);
+async function removeDelegation(): Promise<void> {
+  isUndelegating.value = true;
+  await providerUndelegate(() => {
+    isUndelegating.value = false;
     openHomePage();
   });
 }

@@ -108,13 +108,12 @@ import {
   submitOp,
 } from '@/utils/aa';
 import {
+  DELEGATION_HEADER,
   KERNEL_V3_IMPLEMENTATION_ADDRESS,
   MULTI_CHAIN_VALIDATOR_ADDRESS,
   SMART_SESSION_VALIDATOR_ADDRESS,
 } from '@/utils/consts';
 import { formatAddress } from '@/utils/formatting';
-
-const DELEGATION_HEADER = '0xef0100';
 
 const router = useRouter();
 
@@ -172,6 +171,9 @@ const areSessionKeysEnabled = ref(false);
 const isSessionKeyToggledSetProgrammatically = ref(false);
 async function fetchIsSessionKeysEnabled(): Promise<void> {
   if (!walletAddress.value) {
+    return;
+  }
+  if (delegation.value !== KERNEL_V3_IMPLEMENTATION_ADDRESS) {
     return;
   }
   const client = createPublicClient({

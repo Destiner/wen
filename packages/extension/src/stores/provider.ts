@@ -17,6 +17,7 @@ const useProviderStore = defineStore('provider', () => {
   const isSendingTransaction = ref<boolean>(false);
   const transaction = ref<SendTransactionRequest | null>(null);
   const delegationTxHash = ref<Hex | null>(null);
+  const undelegationTxHash = ref<Hex | null>(null);
   const providerPersonalSignSignature = ref<Hex | null>(null);
   const isRequestingPermissions = ref<boolean>(false);
   const permissionRequest = ref<PermissionRequest | null>(null);
@@ -53,6 +54,10 @@ const useProviderStore = defineStore('provider', () => {
     delegationTxHash.value = value;
   }
 
+  function setUndelegationTxHash(value: Hex | null): void {
+    undelegationTxHash.value = value;
+  }
+
   function setProviderPersonalSignSignature(value: Hex | null): void {
     providerPersonalSignSignature.value = value;
   }
@@ -74,6 +79,7 @@ const useProviderStore = defineStore('provider', () => {
     isSendingTransaction,
     transaction,
     delegationTxHash,
+    undelegationTxHash,
     providerPersonalSignSignature,
     isRequestingPermissions,
     permissionRequest,
@@ -85,6 +91,7 @@ const useProviderStore = defineStore('provider', () => {
     setIsSendingTransaction,
     setTransaction,
     setDelegationTxHash,
+    setUndelegationTxHash,
     setProviderPersonalSignSignature,
     setIsRequestingPermissions,
     setPermissionRequest,

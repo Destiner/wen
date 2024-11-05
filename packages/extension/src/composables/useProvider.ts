@@ -36,6 +36,7 @@ interface UseProvider {
     data: Hex,
     cb: (txHash: Hex | null) => void,
   ) => Promise<void>;
+  undelegate: (cb: (txHash: Hex | null) => void) => Promise<void>;
 
   isRequestingPermissions: Ref<boolean>;
   permissionRequest: Ref<PermissionRequest | null>;
@@ -57,6 +58,7 @@ function useProvider(): UseProvider {
   );
 
   const delegationCallback = ref<((txHash: Hex | null) => void) | null>(null);
+  const undelegationCallback = ref<((txHash: Hex | null) => void) | null>(null);
   const providerPersonalSignCallback = ref<
     ((signature: Hex | null) => void) | null
   >(null);
@@ -169,6 +171,27 @@ function useProvider(): UseProvider {
     }
   });
 
+  const undelegationTxHash = computed<Hex | null>(
+    () => store.undelegationTxHash,
+  );
+  async function undelegate(cb: (txHash: Hex | null) => void): Promise<void> {
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: Math.random(),
+      type: 'UNDELEGATE',
+      data: undefined,
+    });
+    undelegationCallback.value = cb;
+  }
+  whenever(undelegationTxHash, (txHash) => {
+    if (txHash) {
+      if (undelegationCallback.value) {
+        undelegationCallback.value(txHash);
+        undelegationCallback.value = null;
+        store.setUndelegationTxHash(null);
+      }
+    }
+  });
+
   const providerPersonalSignSignature = computed<Hex | null>(
     () => store.providerPersonalSignSignature,
   );
@@ -227,10 +250,10 @@ function useProvider(): UseProvider {
   onMounted(async () => {
     document.addEventListener('DOMContentLoaded', () => {
       chrome.runtime.onMessage.addListener((message: BackendRequestMessage) => {
-        if (!message.id) {
-          return;
-        }
         if (message.type === 'REQUEST_ACCOUNTS') {
+          if (!message.id) {
+            return;
+          }
           store.setIsRequestingAccounts(true);
           store.setRequestId(message.id);
         }
@@ -238,11 +261,17 @@ function useProvider(): UseProvider {
           return;
         }
         if (message.type === 'PERSONAL_SIGN') {
+          if (!message.id) {
+            return;
+          }
           store.setIsPersonalSigning(true);
           store.setPersonalSignedMessage(message.data.message);
           store.setRequestId(message.id);
         }
         if (message.type === 'SEND_TRANSACTION') {
+          if (!message.id) {
+            return;
+          }
           store.setIsSendingTransaction(true);
           store.setTransaction(message.data.transaction);
           store.setRequestId(message.id);
@@ -250,7 +279,13 @@ function useProvider(): UseProvider {
         if (message.type === 'DELEGATED') {
           store.setDelegationTxHash(message.data.txHash);
         }
+        if (message.type === 'UNDELEGATED') {
+          store.setUndelegationTxHash(message.data.txHash);
+        }
         if (message.type === 'REQUEST_PERMISSIONS') {
+          if (!message.id) {
+            return;
+          }
           store.setIsRequestingPermissions(true);
           store.setPermissionRequest(message.data.permissionRequest);
           store.setRequestId(message.id);
@@ -294,6 +329,7 @@ function useProvider(): UseProvider {
     denySendTransaction,
 
     delegate,
+    undelegate,
 
     isRequestingPermissions,
     permissionRequest,
