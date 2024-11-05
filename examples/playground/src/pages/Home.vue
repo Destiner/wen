@@ -70,7 +70,7 @@ import {
   entryPoint07Address,
 } from 'viem/account-abstraction';
 import { odysseyTestnet } from 'viem/chains';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 import kernelMultiChainValidatorAbi from '@/abi/kernelMultiChainValidator';
 import kernelV3ImplementationAbi from '@/abi/kernelV3Implementation';
@@ -137,6 +137,9 @@ const validatorStorage = useReadContract({
   abi: kernelMultiChainValidatorAbi,
   functionName: 'ecdsaValidatorStorage',
   args: [accountAddress.value || zeroAddress],
+});
+watch(accountAddress, () => {
+  validatorStorage.refetch();
 });
 const isValidOwner = computed(() => {
   if (!hasValidRootValidator.value) {

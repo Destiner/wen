@@ -21,6 +21,17 @@ const abi = [
     type: 'error',
   },
   {
+    inputs: [
+      {
+        internalType: 'uint256',
+        name: 'idx',
+        type: 'uint256',
+      },
+    ],
+    name: 'InitConfigError',
+    type: 'error',
+  },
+  {
     inputs: [],
     name: 'InvalidCallType',
     type: 'error',
@@ -134,11 +145,6 @@ const abi = [
   {
     inputs: [],
     name: 'SignerPrefixNotPresent',
-    type: 'error',
-  },
-  {
-    inputs: [],
-    name: 'TEST_TEST',
     type: 'error',
   },
   {
@@ -365,10 +371,6 @@ const abi = [
     type: 'event',
   },
   {
-    stateMutability: 'payable',
-    type: 'fallback',
-  },
-  {
     inputs: [],
     name: 'accountId',
     outputs: [
@@ -379,6 +381,34 @@ const abi = [
       },
     ],
     stateMutability: 'pure',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'ValidationId',
+        name: '_rootValidator',
+        type: 'bytes21',
+      },
+      {
+        internalType: 'contract IHook',
+        name: 'hook',
+        type: 'address',
+      },
+      {
+        internalType: 'bytes',
+        name: 'validatorData',
+        type: 'bytes',
+      },
+      {
+        internalType: 'bytes',
+        name: 'hookData',
+        type: 'bytes',
+      },
+    ],
+    name: 'changeRootValidator',
+    outputs: [],
+    stateMutability: 'payable',
     type: 'function',
   },
   {
@@ -560,32 +590,6 @@ const abi = [
   {
     inputs: [
       {
-        internalType: 'contract IExecutor',
-        name: 'executor',
-        type: 'address',
-      },
-    ],
-    name: 'executorConfig',
-    outputs: [
-      {
-        components: [
-          {
-            internalType: 'contract IHook',
-            name: 'hook',
-            type: 'address',
-          },
-        ],
-        internalType: 'struct ExecutorManager.ExecutorConfig',
-        name: '',
-        type: 'tuple',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
         internalType: 'ValidationId',
         name: '_rootValidator',
         type: 'bytes21',
@@ -604,6 +608,11 @@ const abi = [
         internalType: 'bytes',
         name: 'hookData',
         type: 'bytes',
+      },
+      {
+        internalType: 'bytes[]',
+        name: 'initConfig',
+        type: 'bytes[]',
       },
     ],
     name: 'initialize',
@@ -762,6 +771,118 @@ const abi = [
       },
     ],
     stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+      {
+        internalType: 'uint256[]',
+        name: '',
+        type: 'uint256[]',
+      },
+      {
+        internalType: 'uint256[]',
+        name: '',
+        type: 'uint256[]',
+      },
+      {
+        internalType: 'bytes',
+        name: '',
+        type: 'bytes',
+      },
+    ],
+    name: 'onERC1155BatchReceived',
+    outputs: [
+      {
+        internalType: 'bytes4',
+        name: '',
+        type: 'bytes4',
+      },
+    ],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+      {
+        internalType: 'bytes',
+        name: '',
+        type: 'bytes',
+      },
+    ],
+    name: 'onERC1155Received',
+    outputs: [
+      {
+        internalType: 'bytes4',
+        name: '',
+        type: 'bytes4',
+      },
+    ],
+    stateMutability: 'pure',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+      {
+        internalType: 'uint256',
+        name: '',
+        type: 'uint256',
+      },
+      {
+        internalType: 'bytes',
+        name: '',
+        type: 'bytes',
+      },
+    ],
+    name: 'onERC721Received',
+    outputs: [
+      {
+        internalType: 'bytes4',
+        name: '',
+        type: 'bytes4',
+      },
+    ],
+    stateMutability: 'pure',
     type: 'function',
   },
   {
