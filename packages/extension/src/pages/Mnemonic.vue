@@ -35,6 +35,12 @@
         :disabled="!isValidMnemonic"
         @click="store"
       />
+      <WenButton
+        type="secondary"
+        size="large"
+        label="Remove Mnemonic"
+        @click="remove"
+      />
     </template>
   </WenPage>
 </template>
@@ -53,8 +59,11 @@ import { useWallet } from '@/composables/useWallet';
 
 const router = useRouter();
 
-const { getMnemonic: getWalletMnemonic, setMnemonic: setWalletMnemonic } =
-  useWallet();
+const {
+  getMnemonic: getWalletMnemonic,
+  setMnemonic: setWalletMnemonic,
+  removeMnemonic: removeWalletMnemonic,
+} = useWallet();
 
 const mnemonicInput = ref('');
 const isDirty = ref(false);
@@ -84,6 +93,11 @@ async function store(): Promise<void> {
   openHomePage();
 }
 
+async function remove(): Promise<void> {
+  await removeWalletMnemonic();
+  openImportPage();
+}
+
 function handleInputBlur(): void {
   isDirty.value = true;
 }
@@ -91,6 +105,12 @@ function handleInputBlur(): void {
 function openHomePage(): void {
   router.push({
     name: 'home',
+  });
+}
+
+function openImportPage(): void {
+  router.push({
+    name: 'import',
   });
 }
 </script>

@@ -8,6 +8,7 @@ interface UseWallet {
   setAddress: (value: Address) => void;
   getMnemonic: () => Promise<string | null>;
   setMnemonic: (value: string) => Promise<void>;
+  removeMnemonic: () => Promise<void>;
 }
 
 function useWallet(): UseWallet {
@@ -34,6 +35,14 @@ function useWallet(): UseWallet {
     await fetchWalletAddress();
   }
 
+  async function removeMnemonic(): Promise<void> {
+    await chrome.runtime.sendMessage({
+      type: 'SET_WALLET_MNEMONIC',
+      data: null,
+    });
+    await fetchWalletAddress();
+  }
+
   async function fetchWalletAddress(): Promise<void> {
     const response = await chrome.runtime.sendMessage({
       type: 'GET_WALLET_ADDRESS',
@@ -45,7 +54,7 @@ function useWallet(): UseWallet {
     fetchWalletAddress();
   });
 
-  return { address, setAddress, getMnemonic, setMnemonic };
+  return { address, setAddress, getMnemonic, setMnemonic, removeMnemonic };
 }
 
 // eslint-disable-next-line import-x/prefer-default-export

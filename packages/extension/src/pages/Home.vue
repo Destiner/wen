@@ -64,7 +64,7 @@
       </WenInfoBlock>
       <WenButton
         label="Edit Mnemonic"
-        type="primary"
+        type="secondary"
         size="large"
         @click="openMnemonicPage"
       />

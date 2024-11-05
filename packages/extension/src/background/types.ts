@@ -101,7 +101,7 @@ type GetWalletMnemonicMessage = BaseIdRequestMessage<
 >;
 type SetWalletMnemonicMessage = BaseIdRequestMessage<
   typeof SET_WALLET_MNEMONIC,
-  string
+  string | null
 >;
 
 type RequestAccountsMessage = BaseRequestMessage<typeof REQUEST_ACCOUNTS>;
