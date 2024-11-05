@@ -1,23 +1,27 @@
 import { defineStore } from 'pinia';
-import { Hex, Transaction } from 'viem';
+import { Hex } from 'viem';
 import { ref } from 'vue';
 
-import { MessageSender, PermissionRequest } from '@/background/provider';
+import {
+  MessageSender,
+  PermissionRequest,
+  SendTransactionRequest,
+} from '@/background/provider';
 
 const useProviderStore = defineStore('provider', () => {
-  const requestId = ref<string | number>('');
+  const requestId = ref<string | number | null>(null);
   const requestSender = ref<MessageSender | null>(null);
   const isRequestingAccounts = ref<boolean>(false);
   const isPersonalSigning = ref<boolean>(false);
   const personalSignedMessage = ref<Hex | null>(null);
   const isSendingTransaction = ref<boolean>(false);
-  const transaction = ref<Transaction | null>(null);
+  const transaction = ref<SendTransactionRequest | null>(null);
   const delegationTxHash = ref<Hex | null>(null);
   const providerPersonalSignSignature = ref<Hex | null>(null);
   const isRequestingPermissions = ref<boolean>(false);
   const permissionRequest = ref<PermissionRequest | null>(null);
 
-  function setRequestId(value: string | number): void {
+  function setRequestId(value: string | number | null): void {
     requestId.value = value;
   }
 
@@ -41,7 +45,7 @@ const useProviderStore = defineStore('provider', () => {
     isSendingTransaction.value = value;
   }
 
-  function setTransaction(value: Transaction | null): void {
+  function setTransaction(value: SendTransactionRequest | null): void {
     transaction.value = value;
   }
 

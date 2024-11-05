@@ -12,6 +12,24 @@ import { odysseyTestnet } from 'viem/chains';
 import { eip7702Actions } from 'viem/experimental';
 
 import { Storage } from './storage';
+import {
+  ALLOW_ACCOUNT_REQUEST,
+  DENY_ACCOUNT_REQUEST,
+  ALLOW_PERSONAL_SIGN,
+  DENY_PERSONAL_SIGN,
+  ALLOW_SEND_TRANSACTION,
+  DENY_SEND_TRANSACTION,
+  ALLOW_REQUEST_PERMISSIONS,
+  DENY_REQUEST_PERMISSIONS,
+  DELEGATE,
+  PROVIDER_PERSONAL_SIGN,
+  GET_PROVIDER_STATE,
+  GET_WALLET_ADDRESS,
+  GET_WALLET_MNEMONIC,
+  SET_WALLET_MNEMONIC,
+  FrontendRequestMessage,
+  BackendRequestMessage,
+} from './types';
 
 interface MessageSender {
   origin: string | undefined;
@@ -126,7 +144,7 @@ async function requestAccounts(
   providerState.isRequestingAccounts = true;
   providerState.requestId = id;
   providerState.requestSender = sender;
-  chrome.runtime.sendMessage({
+  chrome.runtime.sendMessage<BackendRequestMessage>({
     type: 'REQUEST_ACCOUNTS',
     id,
   });
@@ -144,9 +162,12 @@ async function personalSign(
   providerState.personalSignedMessage = message;
   providerState.requestId = id;
   providerState.requestSender = sender;
-  chrome.runtime.sendMessage({
+  chrome.runtime.sendMessage<BackendRequestMessage>({
     type: 'PERSONAL_SIGN',
     id,
+    data: {
+      message,
+    },
   });
 }
 
@@ -161,9 +182,12 @@ async function sendTransaction(
   providerState.transaction = transaction;
   providerState.requestId = id;
   providerState.requestSender = sender;
-  chrome.runtime.sendMessage({
+  chrome.runtime.sendMessage<BackendRequestMessage>({
     type: 'SEND_TRANSACTION',
     id,
+    data: {
+      transaction,
+    },
   });
 }
 
@@ -182,9 +206,12 @@ async function requestPermissions(
   providerState.permissionRequest = permissionRequest;
   providerState.requestId = id;
   providerState.requestSender = sender;
-  chrome.runtime.sendMessage({
+  chrome.runtime.sendMessage<BackendRequestMessage>({
     type: 'REQUEST_PERMISSIONS',
     id,
+    data: {
+      permissionRequest,
+    },
   });
 }
 
@@ -339,7 +366,7 @@ function denyRequestPermissions(id: string | number): void {
 
 async function delegate(delegatee: Address, data: Hex): Promise<void> {
   if (!walletState.mnemonic) {
-    chrome.runtime.sendMessage({
+    chrome.runtime.sendMessage<BackendRequestMessage>({
       type: 'DELEGATED',
       data: {
         txHash: null,
@@ -370,7 +397,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
   await publicClient.waitForTransactionReceipt({
     hash: txHash,
   });
-  chrome.runtime.sendMessage({
+  chrome.runtime.sendMessage<BackendRequestMessage>({
     type: 'DELEGATED',
     data: {
       txHash,
@@ -380,7 +407,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
 
 async function providerPersonalSign(message: Hex): Promise<void> {
   if (!walletState.mnemonic) {
-    chrome.runtime.sendMessage({
+    chrome.runtime.sendMessage<BackendRequestMessage>({
       type: 'PROVIDER_PERSONAL_SIGN_RESULT',
       data: {
         signature: null,
@@ -394,7 +421,7 @@ async function providerPersonalSign(message: Hex): Promise<void> {
       raw: message,
     },
   });
-  chrome.runtime.sendMessage({
+  chrome.runtime.sendMessage<BackendRequestMessage>({
     type: 'PROVIDER_PERSONAL_SIGN_RESULT',
     data: {
       signature,
@@ -410,46 +437,48 @@ function getWalletAddress(): Address | null {
   return account.address;
 }
 
-chrome.runtime.onMessage.addListener(async (request, _, sendResponse) => {
-  if (request.type === 'ALLOW_ACCOUNT_REQUEST') {
-    allowAccountRequest(request.id, getAddresses());
-  } else if (request.type === 'DENY_ACCOUNT_REQUEST') {
-    denyAccountRequest(request.id);
-  } else if (request.type === 'ALLOW_PERSONAL_SIGN') {
-    allowPersonalSign(request.id);
-  } else if (request.type === 'DENY_PERSONAL_SIGN') {
-    denyPersonalSign(request.id);
-  } else if (request.type === 'ALLOW_SEND_TRANSACTION') {
-    allowSendTransaction(request.id);
-  } else if (request.type === 'DENY_SEND_TRANSACTION') {
-    denySendTransaction(request.id);
-  } else if (request.type === 'ALLOW_REQUEST_PERMISSIONS') {
-    allowRequestPermissions(request.id);
-  } else if (request.type === 'DENY_REQUEST_PERMISSIONS') {
-    denyRequestPermissions(request.id);
-  } else if (request.type === 'DELEGATE') {
-    const delegatee = request.data.delegatee;
-    const data = request.data.data;
-    await delegate(delegatee, data);
-  } else if (request.type === 'PROVIDER_PERSONAL_SIGN') {
-    const message = request.data.message;
-    await providerPersonalSign(message);
-  } else if (request.type === 'GET_PROVIDER_STATE') {
-    sendResponse(providerState);
-  } else if (request.type === 'GET_WALLET_ADDRESS') {
-    const address = getWalletAddress();
-    sendResponse({
-      address,
-    });
-  } else if (request.type === 'GET_WALLET_MNEMONIC') {
-    sendResponse({
-      mnemonic: walletState.mnemonic,
-    });
-  } else if (request.type === 'SET_WALLET_MNEMONIC') {
-    walletState.mnemonic = request.data;
-    storage.setProviderData({ mnemonic: request.data });
-  }
-});
+chrome.runtime.onMessage.addListener(
+  async (request: FrontendRequestMessage, _, sendResponse) => {
+    if (request.type === ALLOW_ACCOUNT_REQUEST) {
+      allowAccountRequest(request.id, getAddresses());
+    } else if (request.type === DENY_ACCOUNT_REQUEST) {
+      denyAccountRequest(request.id);
+    } else if (request.type === ALLOW_PERSONAL_SIGN) {
+      allowPersonalSign(request.id);
+    } else if (request.type === DENY_PERSONAL_SIGN) {
+      denyPersonalSign(request.id);
+    } else if (request.type === ALLOW_SEND_TRANSACTION) {
+      allowSendTransaction(request.id);
+    } else if (request.type === DENY_SEND_TRANSACTION) {
+      denySendTransaction(request.id);
+    } else if (request.type === ALLOW_REQUEST_PERMISSIONS) {
+      allowRequestPermissions(request.id);
+    } else if (request.type === DENY_REQUEST_PERMISSIONS) {
+      denyRequestPermissions(request.id);
+    } else if (request.type === DELEGATE) {
+      const delegatee = request.data.delegatee;
+      const data = request.data.data;
+      await delegate(delegatee, data);
+    } else if (request.type === PROVIDER_PERSONAL_SIGN) {
+      const message = request.data.message;
+      await providerPersonalSign(message);
+    } else if (request.type === GET_PROVIDER_STATE) {
+      sendResponse(providerState);
+    } else if (request.type === GET_WALLET_ADDRESS) {
+      const address = getWalletAddress();
+      sendResponse({
+        address,
+      });
+    } else if (request.type === GET_WALLET_MNEMONIC) {
+      sendResponse({
+        mnemonic: walletState.mnemonic,
+      });
+    } else if (request.type === SET_WALLET_MNEMONIC) {
+      walletState.mnemonic = request.data;
+      storage.setProviderData({ mnemonic: request.data });
+    }
+  },
+);
 
 function getAddresses(): Address[] {
   if (!walletState.mnemonic) {
@@ -534,4 +563,9 @@ export {
   requestPermissions,
   revokePermissions,
 };
-export type { MessageSender, SendTransactionRequest, PermissionRequest };
+export type {
+  ProviderState,
+  MessageSender,
+  SendTransactionRequest,
+  PermissionRequest,
+};
