@@ -89,7 +89,7 @@ import {
 } from 'viem/account-abstraction';
 import { getBalance, getCode, readContract } from 'viem/actions';
 import { odysseyTestnet } from 'viem/chains';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import kernelV3ImplementationAbi from '@/abi/kernelV3Implementation';
@@ -124,16 +124,18 @@ const walletAddress = computed(() => wallet.address.value);
 
 const balance = ref<bigint | null>(null);
 const delegation = ref<Address | null>(null);
+onMounted(async () => {
+  await Promise.all([fetchBalance(), fetchDelegation()]);
+  await fetchAreSessionKeysEnabled();
+});
 useIntervalFn(
   () => {
     fetchBalance();
     fetchDelegation();
-    fetchIsSessionKeysEnabled();
   },
   10 * 1000,
   {
     immediate: true,
-    immediateCallback: true,
   },
 );
 async function fetchBalance(): Promise<void> {
@@ -169,7 +171,7 @@ async function fetchDelegation(): Promise<void> {
 }
 const areSessionKeysEnabled = ref(false);
 const isSessionKeyToggledSetProgrammatically = ref(false);
-async function fetchIsSessionKeysEnabled(): Promise<void> {
+async function fetchAreSessionKeysEnabled(): Promise<void> {
   if (!walletAddress.value) {
     return;
   }
