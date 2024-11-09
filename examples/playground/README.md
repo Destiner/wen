@@ -1,4 +1,4 @@
-# Extension
+# Playground
 
 ## Installation
 
