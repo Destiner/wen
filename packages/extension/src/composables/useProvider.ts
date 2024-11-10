@@ -156,7 +156,7 @@ function useProvider(): UseProvider {
   ): Promise<void> {
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: Math.random(),
-      type: 'DELEGATE',
+      type: 'PROVIDER_DELEGATE',
       data: {
         delegatee,
         data,
@@ -180,7 +180,7 @@ function useProvider(): UseProvider {
   async function undelegate(cb: (txHash: Hex | null) => void): Promise<void> {
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: Math.random(),
-      type: 'UNDELEGATE',
+      type: 'PROVIDER_UNDELEGATE',
       data: undefined,
     });
     undelegationCallback.value = cb;
@@ -279,7 +279,7 @@ function useProvider(): UseProvider {
           store.setTransaction(message.data.transaction);
           store.setRequestId(message.id);
         }
-        if (message.type === 'DELEGATED') {
+        if (message.type === 'PROVIDER_DELEGATE_RESULT') {
           if (message.error) {
             const messageText =
               message.error === 'NO_ACCOUNT'
@@ -296,7 +296,7 @@ function useProvider(): UseProvider {
             store.setDelegationTxHash(message.data.txHash);
           }
         }
-        if (message.type === 'UNDELEGATED') {
+        if (message.type === 'PROVIDER_UNDELEGATE_RESULT') {
           if (message.error) {
             const messageText =
               message.error === 'NO_ACCOUNT'

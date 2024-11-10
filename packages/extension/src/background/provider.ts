@@ -23,7 +23,8 @@ import {
   DENY_SEND_TRANSACTION,
   ALLOW_REQUEST_PERMISSIONS,
   DENY_REQUEST_PERMISSIONS,
-  DELEGATE,
+  PROVIDER_DELEGATE,
+  PROVIDER_UNDELEGATE,
   PROVIDER_PERSONAL_SIGN,
   GET_PROVIDER_STATE,
   GET_WALLET_ADDRESS,
@@ -31,7 +32,6 @@ import {
   SET_WALLET_MNEMONIC,
   FrontendRequestMessage,
   BackendRequestMessage,
-  UNDELEGATE,
 } from './types';
 
 interface MessageSender {
@@ -370,7 +370,7 @@ function denyRequestPermissions(id: string | number): void {
 async function delegate(delegatee: Address, data: Hex): Promise<void> {
   if (!walletState.mnemonic) {
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'DELEGATED',
+      type: 'PROVIDER_DELEGATE_RESULT',
       data: {
         txHash: null,
       },
@@ -403,7 +403,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
       hash: txHash,
     });
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'DELEGATED',
+      type: 'PROVIDER_DELEGATE_RESULT',
       data: {
         txHash,
       },
@@ -412,7 +412,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
     const error = e as SendTransactionErrorType;
     if (error.name !== 'TransactionExecutionError') {
       chrome.runtime.sendMessage<BackendRequestMessage>({
-        type: 'DELEGATED',
+        type: 'PROVIDER_DELEGATE_RESULT',
         data: {
           txHash: null,
         },
@@ -424,7 +424,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
       (error.cause as { name: string }).name !== 'IntrinsicGasTooLowError'
     ) {
       chrome.runtime.sendMessage<BackendRequestMessage>({
-        type: 'DELEGATED',
+        type: 'PROVIDER_DELEGATE_RESULT',
         data: {
           txHash: null,
         },
@@ -432,7 +432,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
       });
     }
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'DELEGATED',
+      type: 'PROVIDER_DELEGATE_RESULT',
       data: {
         txHash: null,
       },
@@ -444,7 +444,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
 async function undelegate(): Promise<void> {
   if (!walletState.mnemonic) {
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'UNDELEGATED',
+      type: 'PROVIDER_UNDELEGATE_RESULT',
       data: {
         txHash: null,
       },
@@ -477,7 +477,7 @@ async function undelegate(): Promise<void> {
       hash: txHash,
     });
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'UNDELEGATED',
+      type: 'PROVIDER_UNDELEGATE_RESULT',
       data: {
         txHash,
       },
@@ -486,7 +486,7 @@ async function undelegate(): Promise<void> {
     const error = e as SendTransactionErrorType;
     if (error.name !== 'TransactionExecutionError') {
       chrome.runtime.sendMessage<BackendRequestMessage>({
-        type: 'UNDELEGATED',
+        type: 'PROVIDER_UNDELEGATE_RESULT',
         data: {
           txHash: null,
         },
@@ -498,7 +498,7 @@ async function undelegate(): Promise<void> {
       (error.cause as { name: string }).name !== 'IntrinsicGasTooLowError'
     ) {
       chrome.runtime.sendMessage<BackendRequestMessage>({
-        type: 'UNDELEGATED',
+        type: 'PROVIDER_UNDELEGATE_RESULT',
         data: {
           txHash: null,
         },
@@ -506,7 +506,7 @@ async function undelegate(): Promise<void> {
       });
     }
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'UNDELEGATED',
+      type: 'PROVIDER_UNDELEGATE_RESULT',
       data: {
         txHash: null,
       },
@@ -565,11 +565,11 @@ chrome.runtime.onMessage.addListener(
       allowRequestPermissions(request.id);
     } else if (request.type === DENY_REQUEST_PERMISSIONS) {
       denyRequestPermissions(request.id);
-    } else if (request.type === DELEGATE) {
+    } else if (request.type === PROVIDER_DELEGATE) {
       const delegatee = request.data.delegatee;
       const data = request.data.data;
       await delegate(delegatee, data);
-    } else if (request.type === UNDELEGATE) {
+    } else if (request.type === PROVIDER_UNDELEGATE) {
       await undelegate();
     } else if (request.type === PROVIDER_PERSONAL_SIGN) {
       const message = request.data.message;
