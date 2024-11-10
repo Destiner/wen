@@ -15,23 +15,30 @@ import { eip7702Actions } from 'viem/experimental';
 
 import { Storage } from './storage';
 import {
+  FrontendRequestMessage,
+  BackendRequestMessage,
   ALLOW_ACCOUNT_REQUEST,
-  DENY_ACCOUNT_REQUEST,
   ALLOW_PERSONAL_SIGN,
-  DENY_PERSONAL_SIGN,
-  ALLOW_SEND_TRANSACTION,
-  DENY_SEND_TRANSACTION,
   ALLOW_REQUEST_PERMISSIONS,
+  ALLOW_SEND_TRANSACTION,
+  DENY_ACCOUNT_REQUEST,
+  DENY_PERSONAL_SIGN,
   DENY_REQUEST_PERMISSIONS,
-  PROVIDER_DELEGATE,
-  PROVIDER_UNDELEGATE,
-  PROVIDER_PERSONAL_SIGN,
+  DENY_SEND_TRANSACTION,
   GET_PROVIDER_STATE,
   GET_WALLET_ADDRESS,
   GET_WALLET_MNEMONIC,
+  PERSONAL_SIGN,
+  PROVIDER_DELEGATE_RESULT,
+  PROVIDER_DELEGATE,
+  PROVIDER_PERSONAL_SIGN_RESULT,
+  PROVIDER_PERSONAL_SIGN,
+  PROVIDER_UNDELEGATE_RESULT,
+  PROVIDER_UNDELEGATE,
+  REQUEST_ACCOUNTS,
+  REQUEST_PERMISSIONS,
+  SEND_TRANSACTION,
   SET_WALLET_MNEMONIC,
-  FrontendRequestMessage,
-  BackendRequestMessage,
 } from './types';
 
 interface MessageSender {
@@ -148,7 +155,7 @@ async function requestAccounts(
   providerState.requestId = id;
   providerState.requestSender = sender;
   chrome.runtime.sendMessage<BackendRequestMessage>({
-    type: 'REQUEST_ACCOUNTS',
+    type: REQUEST_ACCOUNTS,
     id,
   });
 }
@@ -166,7 +173,7 @@ async function personalSign(
   providerState.requestId = id;
   providerState.requestSender = sender;
   chrome.runtime.sendMessage<BackendRequestMessage>({
-    type: 'PERSONAL_SIGN',
+    type: PERSONAL_SIGN,
     id,
     data: {
       message,
@@ -186,7 +193,7 @@ async function sendTransaction(
   providerState.requestId = id;
   providerState.requestSender = sender;
   chrome.runtime.sendMessage<BackendRequestMessage>({
-    type: 'SEND_TRANSACTION',
+    type: SEND_TRANSACTION,
     id,
     data: {
       transaction,
@@ -210,7 +217,7 @@ async function requestPermissions(
   providerState.requestId = id;
   providerState.requestSender = sender;
   chrome.runtime.sendMessage<BackendRequestMessage>({
-    type: 'REQUEST_PERMISSIONS',
+    type: REQUEST_PERMISSIONS,
     id,
     data: {
       permissionRequest,
@@ -370,7 +377,7 @@ function denyRequestPermissions(id: string | number): void {
 async function delegate(delegatee: Address, data: Hex): Promise<void> {
   if (!walletState.mnemonic) {
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'PROVIDER_DELEGATE_RESULT',
+      type: PROVIDER_DELEGATE_RESULT,
       data: {
         txHash: null,
       },
@@ -403,7 +410,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
       hash: txHash,
     });
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'PROVIDER_DELEGATE_RESULT',
+      type: PROVIDER_DELEGATE_RESULT,
       data: {
         txHash,
       },
@@ -412,7 +419,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
     const error = e as SendTransactionErrorType;
     if (error.name !== 'TransactionExecutionError') {
       chrome.runtime.sendMessage<BackendRequestMessage>({
-        type: 'PROVIDER_DELEGATE_RESULT',
+        type: PROVIDER_DELEGATE_RESULT,
         data: {
           txHash: null,
         },
@@ -424,7 +431,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
       (error.cause as { name: string }).name !== 'IntrinsicGasTooLowError'
     ) {
       chrome.runtime.sendMessage<BackendRequestMessage>({
-        type: 'PROVIDER_DELEGATE_RESULT',
+        type: PROVIDER_DELEGATE_RESULT,
         data: {
           txHash: null,
         },
@@ -432,7 +439,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
       });
     }
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'PROVIDER_DELEGATE_RESULT',
+      type: PROVIDER_DELEGATE_RESULT,
       data: {
         txHash: null,
       },
@@ -444,7 +451,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
 async function undelegate(): Promise<void> {
   if (!walletState.mnemonic) {
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'PROVIDER_UNDELEGATE_RESULT',
+      type: PROVIDER_UNDELEGATE_RESULT,
       data: {
         txHash: null,
       },
@@ -477,7 +484,7 @@ async function undelegate(): Promise<void> {
       hash: txHash,
     });
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'PROVIDER_UNDELEGATE_RESULT',
+      type: PROVIDER_UNDELEGATE_RESULT,
       data: {
         txHash,
       },
@@ -486,7 +493,7 @@ async function undelegate(): Promise<void> {
     const error = e as SendTransactionErrorType;
     if (error.name !== 'TransactionExecutionError') {
       chrome.runtime.sendMessage<BackendRequestMessage>({
-        type: 'PROVIDER_UNDELEGATE_RESULT',
+        type: PROVIDER_UNDELEGATE_RESULT,
         data: {
           txHash: null,
         },
@@ -498,7 +505,7 @@ async function undelegate(): Promise<void> {
       (error.cause as { name: string }).name !== 'IntrinsicGasTooLowError'
     ) {
       chrome.runtime.sendMessage<BackendRequestMessage>({
-        type: 'PROVIDER_UNDELEGATE_RESULT',
+        type: PROVIDER_UNDELEGATE_RESULT,
         data: {
           txHash: null,
         },
@@ -506,7 +513,7 @@ async function undelegate(): Promise<void> {
       });
     }
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'PROVIDER_UNDELEGATE_RESULT',
+      type: PROVIDER_UNDELEGATE_RESULT,
       data: {
         txHash: null,
       },
@@ -518,7 +525,7 @@ async function undelegate(): Promise<void> {
 async function providerPersonalSign(message: Hex): Promise<void> {
   if (!walletState.mnemonic) {
     chrome.runtime.sendMessage<BackendRequestMessage>({
-      type: 'PROVIDER_PERSONAL_SIGN_RESULT',
+      type: PROVIDER_PERSONAL_SIGN_RESULT,
       data: {
         signature: null,
       },
@@ -532,7 +539,7 @@ async function providerPersonalSign(message: Hex): Promise<void> {
     },
   });
   chrome.runtime.sendMessage<BackendRequestMessage>({
-    type: 'PROVIDER_PERSONAL_SIGN_RESULT',
+    type: PROVIDER_PERSONAL_SIGN_RESULT,
     data: {
       signature,
     },

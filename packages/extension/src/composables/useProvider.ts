@@ -11,6 +11,25 @@ import {
 import {
   BackendRequestMessage,
   FrontendRequestMessage,
+  ALLOW_ACCOUNT_REQUEST,
+  ALLOW_PERSONAL_SIGN,
+  ALLOW_REQUEST_PERMISSIONS,
+  ALLOW_SEND_TRANSACTION,
+  DENY_ACCOUNT_REQUEST,
+  DENY_PERSONAL_SIGN,
+  DENY_REQUEST_PERMISSIONS,
+  DENY_SEND_TRANSACTION,
+  GET_PROVIDER_STATE,
+  PERSONAL_SIGN,
+  PROVIDER_DELEGATE_RESULT,
+  PROVIDER_DELEGATE,
+  PROVIDER_PERSONAL_SIGN_RESULT,
+  PROVIDER_PERSONAL_SIGN,
+  PROVIDER_UNDELEGATE_RESULT,
+  PROVIDER_UNDELEGATE,
+  REQUEST_ACCOUNTS,
+  REQUEST_PERMISSIONS,
+  SEND_TRANSACTION,
 } from '@/background/types';
 import useProviderStore from '@/stores/provider';
 
@@ -75,7 +94,7 @@ function useProvider(): UseProvider {
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: requestId.value,
-      type: 'ALLOW_ACCOUNT_REQUEST',
+      type: ALLOW_ACCOUNT_REQUEST,
       data: undefined,
     });
     store.setIsRequestingAccounts(false);
@@ -86,7 +105,7 @@ function useProvider(): UseProvider {
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: requestId.value,
-      type: 'DENY_ACCOUNT_REQUEST',
+      type: DENY_ACCOUNT_REQUEST,
       data: undefined,
     });
     store.setIsRequestingAccounts(false);
@@ -102,7 +121,7 @@ function useProvider(): UseProvider {
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: requestId.value,
-      type: 'ALLOW_PERSONAL_SIGN',
+      type: ALLOW_PERSONAL_SIGN,
       data: undefined,
     });
     store.setIsPersonalSigning(false);
@@ -113,7 +132,7 @@ function useProvider(): UseProvider {
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: requestId.value,
-      type: 'DENY_PERSONAL_SIGN',
+      type: DENY_PERSONAL_SIGN,
       data: undefined,
     });
     store.setIsPersonalSigning(false);
@@ -131,7 +150,7 @@ function useProvider(): UseProvider {
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: requestId.value,
-      type: 'ALLOW_SEND_TRANSACTION',
+      type: ALLOW_SEND_TRANSACTION,
       data: undefined,
     });
     store.setIsSendingTransaction(false);
@@ -142,7 +161,7 @@ function useProvider(): UseProvider {
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: requestId.value,
-      type: 'DENY_SEND_TRANSACTION',
+      type: DENY_SEND_TRANSACTION,
       data: undefined,
     });
     store.setIsSendingTransaction(false);
@@ -156,7 +175,7 @@ function useProvider(): UseProvider {
   ): Promise<void> {
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: Math.random(),
-      type: 'PROVIDER_DELEGATE',
+      type: PROVIDER_DELEGATE,
       data: {
         delegatee,
         data,
@@ -180,7 +199,7 @@ function useProvider(): UseProvider {
   async function undelegate(cb: (txHash: Hex | null) => void): Promise<void> {
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: Math.random(),
-      type: 'PROVIDER_UNDELEGATE',
+      type: PROVIDER_UNDELEGATE,
       data: undefined,
     });
     undelegationCallback.value = cb;
@@ -204,7 +223,7 @@ function useProvider(): UseProvider {
   ): Promise<void> {
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: Math.random(),
-      type: 'PROVIDER_PERSONAL_SIGN',
+      type: PROVIDER_PERSONAL_SIGN,
       data: {
         message,
       },
@@ -233,7 +252,7 @@ function useProvider(): UseProvider {
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: requestId.value,
-      type: 'ALLOW_REQUEST_PERMISSIONS',
+      type: ALLOW_REQUEST_PERMISSIONS,
       data: undefined,
     });
     store.setIsRequestingPermissions(false);
@@ -244,7 +263,7 @@ function useProvider(): UseProvider {
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: requestId.value,
-      type: 'DENY_REQUEST_PERMISSIONS',
+      type: DENY_REQUEST_PERMISSIONS,
       data: undefined,
     });
     store.setIsRequestingPermissions(false);
@@ -253,7 +272,7 @@ function useProvider(): UseProvider {
   onMounted(async () => {
     document.addEventListener('DOMContentLoaded', () => {
       chrome.runtime.onMessage.addListener((message: BackendRequestMessage) => {
-        if (message.type === 'REQUEST_ACCOUNTS') {
+        if (message.type === REQUEST_ACCOUNTS) {
           if (!message.id) {
             return;
           }
@@ -263,7 +282,7 @@ function useProvider(): UseProvider {
         if (!message.data) {
           return;
         }
-        if (message.type === 'PERSONAL_SIGN') {
+        if (message.type === PERSONAL_SIGN) {
           if (!message.id) {
             return;
           }
@@ -271,7 +290,7 @@ function useProvider(): UseProvider {
           store.setPersonalSignedMessage(message.data.message);
           store.setRequestId(message.id);
         }
-        if (message.type === 'SEND_TRANSACTION') {
+        if (message.type === SEND_TRANSACTION) {
           if (!message.id) {
             return;
           }
@@ -279,7 +298,7 @@ function useProvider(): UseProvider {
           store.setTransaction(message.data.transaction);
           store.setRequestId(message.id);
         }
-        if (message.type === 'PROVIDER_DELEGATE_RESULT') {
+        if (message.type === PROVIDER_DELEGATE_RESULT) {
           if (message.error) {
             const messageText =
               message.error === 'NO_ACCOUNT'
@@ -296,7 +315,7 @@ function useProvider(): UseProvider {
             store.setDelegationTxHash(message.data.txHash);
           }
         }
-        if (message.type === 'PROVIDER_UNDELEGATE_RESULT') {
+        if (message.type === PROVIDER_UNDELEGATE_RESULT) {
           if (message.error) {
             const messageText =
               message.error === 'NO_ACCOUNT'
@@ -317,7 +336,7 @@ function useProvider(): UseProvider {
             store.setUndelegationTxHash(message.data.txHash);
           }
         }
-        if (message.type === 'REQUEST_PERMISSIONS') {
+        if (message.type === REQUEST_PERMISSIONS) {
           if (!message.id) {
             return;
           }
@@ -325,14 +344,14 @@ function useProvider(): UseProvider {
           store.setPermissionRequest(message.data.permissionRequest);
           store.setRequestId(message.id);
         }
-        if (message.type === 'PROVIDER_PERSONAL_SIGN_RESULT') {
+        if (message.type === PROVIDER_PERSONAL_SIGN_RESULT) {
           store.setProviderPersonalSignSignature(message.data.signature);
         }
       });
     });
     const response = (await chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: Math.random(),
-      type: 'GET_PROVIDER_STATE',
+      type: GET_PROVIDER_STATE,
       data: undefined,
     })) as ProviderState;
     store.setRequestId(response.requestId);
