@@ -13,7 +13,7 @@
       </template>
       <template v-else>
         <p>Delegating to: {{ delegateeAddress }}</p>
-        <template v-if="delegateeAddress !== KERNEL_V3_IMPLEMENTATION_ADDRESS">
+        <template v-if="!isValidDelegatee">
           <p>Delegatee not supported: please delegate to Kernel V3</p>
         </template>
         <template v-else-if="!isInitialized">
@@ -95,6 +95,8 @@ const { disconnect } = useDisconnect();
 const { sendTransactionAsync } = useSendTransaction();
 const { signMessageAsync } = useSignMessage();
 
+const KERNEL_V3_IMPLEMENTATION_LEGACY_ADDRESS =
+  '0x94f097e1ebeb4eca3aae54cabb08905b239a7d27';
 const KERNEL_V3_IMPLEMENTATION_ADDRESS =
   '0x21523eaa06791d2524eb2788af8aa0e1cfbb61b7';
 const KERNEL_V3_MULTI_CHAIN_VALIDATOR_ADDRESS =
@@ -118,6 +120,15 @@ const delegateeAddress = computed<Address | null>(() => {
   }
   return slice(accountCodeResult.data.value, 3, 3 + 20);
 });
+const isValidDelegatee = computed(() => {
+  if (delegateeAddress.value === KERNEL_V3_IMPLEMENTATION_ADDRESS) {
+    return true;
+  }
+  if (delegateeAddress.value === KERNEL_V3_IMPLEMENTATION_LEGACY_ADDRESS) {
+    return true;
+  }
+  return false;
+});
 
 const rootValidatorResult = useReadContract({
   address: accountAddress,
@@ -132,11 +143,17 @@ const hasValidRootValidator = computed(() => {
   return rootValidatorResult.data.value === KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID;
 });
 
+const ecdsaValidatorStorageAddress = computed(() => {
+  if (!accountAddress.value) {
+    return zeroAddress;
+  }
+  return accountAddress.value;
+});
 const validatorStorage = useReadContract({
   address: KERNEL_V3_MULTI_CHAIN_VALIDATOR_ADDRESS,
   abi: kernelMultiChainValidatorAbi,
   functionName: 'ecdsaValidatorStorage',
-  args: [accountAddress.value || zeroAddress],
+  args: [ecdsaValidatorStorageAddress],
 });
 watch(accountAddress, () => {
   validatorStorage.refetch();
