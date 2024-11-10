@@ -1,42 +1,143 @@
 <template>
-  <div class="account">
-    <template v-if="!isConnected">
-      <p>Not connected</p>
-      <button @click="openConnectorDialog">Connect</button>
-    </template>
-    <template v-else>
-      <p>Connected</p>
-      <button @click="handleDisconnectClick">Disconnect</button>
-      <p>Address: {{ accountAddress }}</p>
-      <template v-if="!delegateeAddress">
-        <p>Not delegating</p>
-      </template>
-      <template v-else>
-        <p>Delegating to: {{ delegateeAddress }}</p>
-        <template v-if="!isValidDelegatee">
-          <p>Delegatee not supported: please delegate to Kernel V3</p>
-        </template>
-        <template v-else-if="!isInitialized">
-          <p>Not initialized: please initialize the account first</p>
-        </template>
-        <template v-else-if="!hasValidRootValidator">
-          <p>Not a valid root validator: please use multi-chain validator</p>
-        </template>
-        <template v-else-if="!isValidOwner">
-          <p>Not the owner of the root validator</p>
+  <div class="page">
+    <div class="content">
+      <div class="account">
+        <template v-if="!isConnected">
+          <div>Connect a wallet to get started</div>
+          <div>
+            <PlayButton
+              type="primary"
+              @click="openConnectorDialog"
+            >
+              Connect
+            </PlayButton>
+          </div>
         </template>
         <template v-else>
-          <p>Account is ready</p>
+          <div>
+            <PlayButton
+              type="secondary"
+              @click="handleDisconnectClick"
+            >
+              Disconnect
+            </PlayButton>
+          </div>
+          <div class="data-row">
+            <div class="label">Account</div>
+            <div class="value">{{ accountAddress }}</div>
+          </div>
+
+          <div
+            class="data-row"
+            :class="{ invalid: !isValidDelegatee }"
+          >
+            <div class="label">Delegatee</div>
+            <div class="value">
+              <template v-if="isValidDelegatee">
+                {{ delegateeAddress }}
+              </template>
+              <template v-else-if="delegateeAddress">
+                {{ delegateeAddress }} (not supported, please delegate to Kernel
+                V3)
+              </template>
+              <template v-else> Not delegating </template>
+            </div>
+          </div>
+
+          <div
+            v-if="isValidDelegatee"
+            class="data-row"
+            :class="{ invalid: !isInitialized }"
+          >
+            <div class="label">Is initialized?</div>
+            <div class="value">
+              <template v-if="isInitialized">Yes</template>
+              <template v-else>
+                No: please initialize the account first
+              </template>
+            </div>
+          </div>
+
+          <div
+            v-if="isInitialized"
+            class="data-row"
+            :class="{ invalid: !hasValidRootValidator }"
+          >
+            <div class="label">Has valid root validator?</div>
+            <div class="value">
+              <template v-if="hasValidRootValidator">Yes</template>
+              <template v-else> No: please use multi-chain validator </template>
+            </div>
+          </div>
+
+          <div
+            v-if="hasValidRootValidator"
+            class="data-row"
+            :class="{ invalid: !isValidOwner }"
+          >
+            <div class="label">Is valid owner?</div>
+            <div class="value">
+              <template v-if="isValidOwner">Yes</template>
+              <template v-else> No: please make your EOA an owner </template>
+            </div>
+          </div>
         </template>
-      </template>
-    </template>
-  </div>
-  <div
-    v-if="isValidOwner"
-    class="actions"
-  >
-    <button @click="handleSendTransactionClick">Send test transaction</button>
-    <button @click="handleSendUserOpClick">Send test user operation</button>
+      </div>
+      <div class="actions">
+        <div class="action">
+          <div>
+            <PlayButton
+              type="secondary"
+              :disabled="!isValidOwner || isPending"
+              @click="handleSendTransactionClick"
+            >
+              Send transaction
+            </PlayButton>
+          </div>
+          <div>
+            <div
+              v-if="txHash"
+              class="action-result"
+            >
+              Sent
+              <a
+                :href="getBlockExplorerTxUrl(txHash)"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <IconArrowTopRight class="icon" />
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="action">
+          <div>
+            <PlayButton
+              type="secondary"
+              :disabled="!isValidOwner || isPending"
+              @click="handleSendUserOpClick"
+            >
+              Send user operation
+            </PlayButton>
+          </div>
+          <div>
+            <div
+              v-if="opTxHash"
+              class="action-result"
+            >
+              Sent
+              <a
+                :href="getBlockExplorerTxUrl(opTxHash)"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <IconArrowTopRight class="icon" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   <DialogConnectors
     v-model:model-value="isDialogConnectorsOpen"
@@ -75,6 +176,8 @@ import { computed, ref, watch } from 'vue';
 import kernelMultiChainValidatorAbi from '@/abi/kernelMultiChainValidator';
 import kernelV3ImplementationAbi from '@/abi/kernelV3Implementation';
 import DialogConnectors from '@/components/DialogConnectors.vue';
+import IconArrowTopRight from '@/components/IconArrowTopRight.vue';
+import PlayButton from '@/components/PlayButton.vue';
 import useEnv from '@/composables/useEnv';
 import {
   Execution,
@@ -135,7 +238,11 @@ const rootValidatorResult = useReadContract({
   abi: kernelV3ImplementationAbi,
   functionName: 'rootValidator',
 });
-const isInitialized = computed(() => rootValidatorResult.data.value !== '0x');
+const isInitialized = computed(
+  () =>
+    rootValidatorResult.data.value !== undefined &&
+    rootValidatorResult.data.value !== '0x',
+);
 const hasValidRootValidator = computed(() => {
   if (!isInitialized.value) {
     return false;
@@ -180,16 +287,30 @@ async function handleDisconnectClick(): Promise<void> {
   disconnect();
 }
 
+const isPending = ref(false);
+
+const txHash = ref<Hex | null>(null);
 async function handleSendTransactionClick(): Promise<void> {
-  await sendTransactionAsync({
-    to: accountAddress.value,
-    value: 0n,
-  });
+  isPending.value = true;
+  try {
+    const hash = await sendTransactionAsync({
+      to: accountAddress.value,
+      value: 0n,
+    });
+    txHash.value = hash;
+  } catch {
+    // Ignore
+  }
+  isPending.value = false;
 }
 
+const opHash = ref<Hex | null>(null);
+const opTxHash = ref<Hex | null>(null);
 async function handleSendUserOpClick(): Promise<void> {
-  const opHash = await sendUserOp();
-  if (!opHash) {
+  isPending.value = true;
+  const hash = await sendUserOp();
+  if (!hash) {
+    isPending.value = false;
     return;
   }
   const bundlerClient = createBundlerClient({
@@ -199,7 +320,10 @@ async function handleSendUserOpClick(): Promise<void> {
     }),
     transport: http(bundlerRpc),
   });
-  const txHash = await getOpTxHash(bundlerClient, opHash);
+  const txHash = await getOpTxHash(bundlerClient, hash);
+  isPending.value = false;
+  opHash.value = hash;
+  opTxHash.value = txHash;
   if (!txHash) {
     return;
   }
@@ -251,4 +375,99 @@ async function sendUserOp(): Promise<null | Hex> {
     return null;
   }
 }
+
+function getBlockExplorerTxUrl(hash: Hex): string {
+  const chain = odysseyTestnet;
+  const explorerUrl = chain.blockExplorers.default.url;
+  return `${explorerUrl}/tx/${hash}`;
+}
 </script>
+
+<style scoped>
+.page {
+  display: flex;
+  align-items: start;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 32px 16px;
+  background: #f3f4ef;
+}
+
+@media (width >= 768px) {
+  .page {
+    align-items: center;
+    margin: 0;
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  width: 640px;
+  max-width: 100%;
+  padding: 8px;
+  border: 1px solid #dadbd2;
+  border-radius: 6px;
+  background: #fff;
+  gap: 24px;
+}
+
+.account {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.data-row {
+  display: flex;
+  gap: 2px;
+  flex-direction: column;
+
+  .value {
+    overflow: hidden;
+    color: #111;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &.invalid {
+    .value {
+      color: #db3807;
+    }
+  }
+
+  .label {
+    color: #737373;
+    font-size: 12px;
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+
+  .action {
+    display: flex;
+    gap: 2px;
+    flex-direction: column;
+
+    .action-result {
+      display: inline-flex;
+      padding: 6px 10px;
+      border: 1px solid #dadbd2;
+      border-radius: 6px;
+      background: #e5e7e0;
+      font-family: Consolas, Inconsolata, monospace;
+      font-size: 13px;
+      gap: 4px;
+
+      .icon {
+        width: 16px;
+        height: 16px;
+        color: #111;
+      }
+    }
+  }
+}
+</style>

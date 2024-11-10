@@ -22,6 +22,8 @@ import { RouterView } from 'vue-router';
 }
 
 body {
+  margin: 0;
+  background: #f3f4ef;
   font-family: var(--font-sans);
 }
 

@@ -3,6 +3,8 @@
     <Dialog.Portal>
       <Dialog.Overlay class="overlay" />
       <Dialog.Content class="content">
+        <Dialog.Title class="title">Choose wallet</Dialog.Title>
+        <Dialog.Description class="description"></Dialog.Description>
         <div class="connectors">
           <div
             v-for="connector in connectors"
@@ -55,6 +57,12 @@ function handleClick(connector: Connector): void {
   inset: 0;
 }
 
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
 .content {
   position: fixed;
   top: 50%;
@@ -62,13 +70,14 @@ function handleClick(connector: Connector): void {
   width: 90vw;
   max-width: 450px;
   max-height: 85vh;
-  padding: 25px;
+  padding: 16px;
   transform: translate(-50%, -50%);
   border-radius: 6px;
-  background-color: white;
+  background: #fff;
   box-shadow:
     hsl(206deg 22% 7% / 35%) 0 10px 38px -10px,
     hsl(206deg 22% 7% / 20%) 0 10px 20px -15px;
+  font-size: 14px;
 }
 
 .content:focus {
@@ -90,7 +99,7 @@ function handleClick(connector: Connector): void {
 
   &:hover {
     border-radius: 6px;
-    background-color: #f2f2f2;
+    background-color: #e4e5de;
   }
 }
 
