@@ -26,16 +26,25 @@ const DELEGATED = 'DELEGATED';
 const UNDELEGATED = 'UNDELEGATED';
 const PROVIDER_PERSONAL_SIGN_RESULT = 'PROVIDER_PERSONAL_SIGN_RESULT';
 
-interface BaseRequestMessage<T = RequestMessageType, D = undefined> {
+interface BaseRequestMessage<
+  T = RequestMessageType,
+  D = undefined,
+  E = undefined,
+> {
   id?: string | number;
   type: T;
   data?: D;
+  error?: E;
 }
 
-interface BaseIdRequestMessage<T = RequestMessageType, D = undefined>
-  extends BaseRequestMessage<T, D> {
+interface BaseIdRequestMessage<
+  T = RequestMessageType,
+  D = undefined,
+  E = undefined,
+> extends BaseRequestMessage<T, D, E> {
   id: string | number;
   data: D;
+  error?: E;
 }
 
 type FrontendRequestMessageType =
@@ -131,13 +140,15 @@ type DelegatedMessage = BaseRequestMessage<
   typeof DELEGATED,
   {
     txHash: Hex | null;
-  }
+  },
+  'NO_ACCOUNT' | 'LOW_FUNDS' | 'UNKNOWN'
 >;
 type UndelegatedMessage = BaseRequestMessage<
   typeof UNDELEGATED,
   {
     txHash: Hex | null;
-  }
+  },
+  'NO_ACCOUNT' | 'LOW_FUNDS' | 'UNKNOWN'
 >;
 type ProviderPersonalSignResultMessage = BaseRequestMessage<
   typeof PROVIDER_PERSONAL_SIGN_RESULT,

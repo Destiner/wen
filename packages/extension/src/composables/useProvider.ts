@@ -14,6 +14,8 @@ import {
 } from '@/background/types';
 import useProviderStore from '@/stores/provider';
 
+import { useToast } from './useToast';
+
 interface UseProvider {
   sender: Ref<MessageSender | null>;
 
@@ -51,6 +53,7 @@ interface UseProvider {
 
 function useProvider(): UseProvider {
   const store = useProviderStore();
+  const { send } = useToast();
 
   const requestId = computed<string | number | null>(() => store.requestId);
   const requestSender = computed<MessageSender | null>(
@@ -164,7 +167,7 @@ function useProvider(): UseProvider {
   whenever(delegationTxHash, (txHash) => {
     if (txHash) {
       if (delegationCallback.value) {
-        delegationCallback.value(txHash);
+        delegationCallback.value(txHash === '0x' ? null : txHash);
         delegationCallback.value = null;
         store.setDelegationTxHash(null);
       }
@@ -185,7 +188,7 @@ function useProvider(): UseProvider {
   whenever(undelegationTxHash, (txHash) => {
     if (txHash) {
       if (undelegationCallback.value) {
-        undelegationCallback.value(txHash);
+        undelegationCallback.value(txHash === '0x' ? null : txHash);
         undelegationCallback.value = null;
         store.setUndelegationTxHash(null);
       }
@@ -277,10 +280,42 @@ function useProvider(): UseProvider {
           store.setRequestId(message.id);
         }
         if (message.type === 'DELEGATED') {
-          store.setDelegationTxHash(message.data.txHash);
+          if (message.error) {
+            const messageText =
+              message.error === 'NO_ACCOUNT'
+                ? "Can't access account"
+                : message.error === 'LOW_FUNDS'
+                  ? 'Insufficient funds'
+                  : 'Unknown error';
+            send({
+              type: 'error',
+              message: messageText,
+            });
+            store.setDelegationTxHash('0x');
+          } else {
+            store.setDelegationTxHash(message.data.txHash);
+          }
         }
         if (message.type === 'UNDELEGATED') {
-          store.setUndelegationTxHash(message.data.txHash);
+          if (message.error) {
+            const messageText =
+              message.error === 'NO_ACCOUNT'
+                ? "Can't access account"
+                : message.error === 'LOW_FUNDS'
+                  ? 'Insufficient funds'
+                  : 'Unknown error';
+            send({
+              type: 'error',
+              message: messageText,
+            });
+            if (undelegationCallback.value) {
+              undelegationCallback.value(null);
+              undelegationCallback.value = null;
+            }
+            store.setUndelegationTxHash('0x');
+          } else {
+            store.setUndelegationTxHash(message.data.txHash);
+          }
         }
         if (message.type === 'REQUEST_PERMISSIONS') {
           if (!message.id) {

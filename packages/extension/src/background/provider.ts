@@ -5,6 +5,7 @@ import {
   createWalletClient,
   Hex,
   http,
+  SendTransactionErrorType,
   WalletPermission,
   zeroAddress,
 } from 'viem';
@@ -373,6 +374,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
       data: {
         txHash: null,
       },
+      error: 'NO_ACCOUNT',
     });
     return;
   }
@@ -382,29 +384,61 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
     chain: odysseyTestnet,
     transport: http(),
   }).extend(eip7702Actions());
-
   const authorization = await walletClient.signAuthorization({
     contractAddress: delegatee,
   });
-  const txHash = await walletClient.sendTransaction({
-    authorizationList: [authorization],
-    data,
-    to: walletClient.account.address,
-  });
 
-  const publicClient = createPublicClient({
-    chain: odysseyTestnet,
-    transport: http(),
-  });
-  await publicClient.waitForTransactionReceipt({
-    hash: txHash,
-  });
-  chrome.runtime.sendMessage<BackendRequestMessage>({
-    type: 'DELEGATED',
-    data: {
-      txHash,
-    },
-  });
+  try {
+    const txHash = await walletClient.sendTransaction({
+      authorizationList: [authorization],
+      data,
+      to: walletClient.account.address,
+    });
+
+    const publicClient = createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    });
+    await publicClient.waitForTransactionReceipt({
+      hash: txHash,
+    });
+    chrome.runtime.sendMessage<BackendRequestMessage>({
+      type: 'DELEGATED',
+      data: {
+        txHash,
+      },
+    });
+  } catch (e) {
+    const error = e as SendTransactionErrorType;
+    if (error.name !== 'TransactionExecutionError') {
+      chrome.runtime.sendMessage<BackendRequestMessage>({
+        type: 'DELEGATED',
+        data: {
+          txHash: null,
+        },
+        error: 'UNKNOWN',
+      });
+    }
+    if (
+      !error.cause ||
+      (error.cause as { name: string }).name !== 'IntrinsicGasTooLowError'
+    ) {
+      chrome.runtime.sendMessage<BackendRequestMessage>({
+        type: 'DELEGATED',
+        data: {
+          txHash: null,
+        },
+        error: 'UNKNOWN',
+      });
+    }
+    chrome.runtime.sendMessage<BackendRequestMessage>({
+      type: 'DELEGATED',
+      data: {
+        txHash: null,
+      },
+      error: 'LOW_FUNDS',
+    });
+  }
 }
 
 async function undelegate(): Promise<void> {
@@ -414,6 +448,7 @@ async function undelegate(): Promise<void> {
       data: {
         txHash: null,
       },
+      error: 'NO_ACCOUNT',
     });
     return;
   }
@@ -427,25 +462,57 @@ async function undelegate(): Promise<void> {
   const authorization = await walletClient.signAuthorization({
     contractAddress: zeroAddress,
   });
-  const txHash = await walletClient.sendTransaction({
-    authorizationList: [authorization],
-    data: '0x',
-    to: walletClient.account.address,
-  });
+  try {
+    const txHash = await walletClient.sendTransaction({
+      authorizationList: [authorization],
+      data: '0x',
+      to: walletClient.account.address,
+    });
 
-  const publicClient = createPublicClient({
-    chain: odysseyTestnet,
-    transport: http(),
-  });
-  await publicClient.waitForTransactionReceipt({
-    hash: txHash,
-  });
-  chrome.runtime.sendMessage<BackendRequestMessage>({
-    type: 'UNDELEGATED',
-    data: {
-      txHash,
-    },
-  });
+    const publicClient = createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    });
+    await publicClient.waitForTransactionReceipt({
+      hash: txHash,
+    });
+    chrome.runtime.sendMessage<BackendRequestMessage>({
+      type: 'UNDELEGATED',
+      data: {
+        txHash,
+      },
+    });
+  } catch (e) {
+    const error = e as SendTransactionErrorType;
+    if (error.name !== 'TransactionExecutionError') {
+      chrome.runtime.sendMessage<BackendRequestMessage>({
+        type: 'UNDELEGATED',
+        data: {
+          txHash: null,
+        },
+        error: 'UNKNOWN',
+      });
+    }
+    if (
+      !error.cause ||
+      (error.cause as { name: string }).name !== 'IntrinsicGasTooLowError'
+    ) {
+      chrome.runtime.sendMessage<BackendRequestMessage>({
+        type: 'UNDELEGATED',
+        data: {
+          txHash: null,
+        },
+        error: 'UNKNOWN',
+      });
+    }
+    chrome.runtime.sendMessage<BackendRequestMessage>({
+      type: 'UNDELEGATED',
+      data: {
+        txHash: null,
+      },
+      error: 'LOW_FUNDS',
+    });
+  }
 }
 
 async function providerPersonalSign(message: Hex): Promise<void> {

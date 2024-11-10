@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <RouterView />
+    <WenToast :value="toast" />
   </div>
 </template>
 
@@ -9,8 +10,13 @@ import '@fontsource-variable/inter';
 import { RouterView } from 'vue-router';
 
 import { useRouting } from '@/composables/useRouting';
+import { useToast } from '@/composables/useToast';
+
+import WenToast from './components/__common/WenToast.vue';
 
 useRouting();
+
+const { item: toast } = useToast();
 </script>
 
 <!-- eslint-disable-next-line vue/enforce-style-attribute -->

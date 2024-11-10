@@ -311,17 +311,21 @@ async function delegate(): Promise<void> {
     ? (initializationData.value as Hex)
     : '0x';
   isDelegating.value = true;
-  await providerDelegate(delegateeAddress.value as Address, data, () => {
+  await providerDelegate(delegateeAddress.value as Address, data, (txHash) => {
     isDelegating.value = false;
-    openHomePage();
+    if (txHash) {
+      openHomePage();
+    }
   });
 }
 const isUndelegating = ref(false);
 async function removeDelegation(): Promise<void> {
   isUndelegating.value = true;
-  await providerUndelegate(() => {
+  await providerUndelegate((txHash) => {
     isUndelegating.value = false;
-    openHomePage();
+    if (txHash) {
+      openHomePage();
+    }
   });
 }
 
