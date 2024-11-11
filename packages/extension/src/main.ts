@@ -12,6 +12,7 @@ import AccountRequest from '@/pages/requests/Account.vue';
 import Permissions from '@/pages/requests/Permissions.vue';
 import PersonalSign from '@/pages/requests/PersonalSign.vue';
 import SendTransaction from '@/pages/requests/SendTransaction.vue';
+import SignTypedData from '@/pages/requests/SignTypedData.vue';
 import { config } from '@/wagmi';
 
 import App from './App.vue';
@@ -38,6 +39,11 @@ const router = createRouter({
       path: '/send-transaction',
       name: 'send-transaction',
       component: SendTransaction,
+    },
+    {
+      path: '/sign-typed-data',
+      name: 'sign-typed-data',
+      component: SignTypedData,
     },
     {
       path: '/request-permissions',

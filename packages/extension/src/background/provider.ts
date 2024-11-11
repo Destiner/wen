@@ -6,6 +6,9 @@ import {
   Hex,
   http,
   SendTransactionErrorType,
+  TypedData,
+  TypedDataDefinition,
+  TypedDataDomain,
   WalletPermission,
   zeroAddress,
 } from 'viem';
@@ -39,6 +42,9 @@ import {
   REQUEST_PERMISSIONS,
   SEND_TRANSACTION,
   SET_WALLET_MNEMONIC,
+  ALLOW_SIGN_TYPED_DATA,
+  DENY_SIGN_TYPED_DATA,
+  SIGN_TYPED_DATA,
 } from './types';
 
 interface MessageSender {
@@ -56,6 +62,13 @@ interface SendTransactionRequest {
   maxPriorityFeePerGas?: Hex;
   maxFeePerGas?: Hex;
   nonce?: Hex;
+}
+
+interface TypedDataRequest {
+  domain: TypedDataDomain;
+  types: TypedDataDefinition;
+  primaryType: string;
+  message: TypedData;
 }
 
 interface PermissionRequest {
@@ -93,6 +106,9 @@ interface ProviderState {
   isRequestingPermissions: boolean;
   permissionRequest: PermissionRequest | null;
   permissions: WalletPermission[];
+
+  isSigningTypedData: boolean;
+  typedDataRequest: TypedDataRequest | null;
 }
 
 interface WalletState {
@@ -117,6 +133,9 @@ const providerState: ProviderState = {
   isRequestingPermissions: false,
   permissionRequest: null,
   permissions: [],
+
+  isSigningTypedData: false,
+  typedDataRequest: null,
 };
 
 const walletState: WalletState = {
@@ -240,6 +259,26 @@ async function revokePermissions(
     return !Object.keys(permissionRequest).includes(
       permission.parentCapability,
     );
+  });
+}
+
+async function signTypedData(
+  id: string | number,
+  sender: MessageSender,
+  typedDataRequest: TypedDataRequest,
+  callback: (value: Response<Hex>) => void,
+): Promise<void> {
+  callbacks[id] = callback;
+  providerState.isSigningTypedData = true;
+  providerState.typedDataRequest = typedDataRequest;
+  providerState.requestId = id;
+  providerState.requestSender = sender;
+  chrome.runtime.sendMessage<BackendRequestMessage>({
+    type: SIGN_TYPED_DATA,
+    id,
+    data: {
+      typedDataRequest,
+    },
   });
 }
 
@@ -370,6 +409,32 @@ function denyRequestPermissions(id: string | number): void {
     callback({
       status: false,
       error: new Error('User denied permission request'),
+    });
+  }
+}
+
+async function allowSignTypedData(id: string | number): Promise<void> {
+  providerState.isSigningTypedData = false;
+  if (!providerState.typedDataRequest) {
+    return;
+  }
+  const signature = await getTypedDataSignature(providerState.typedDataRequest);
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: true,
+      result: signature,
+    });
+  }
+}
+
+function denySignTypedData(id: string | number): void {
+  providerState.isSigningTypedData = false;
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: false,
+      error: new Error('User denied typed data sign request'),
     });
   }
 }
@@ -572,6 +637,10 @@ chrome.runtime.onMessage.addListener(
       allowRequestPermissions(request.id);
     } else if (request.type === DENY_REQUEST_PERMISSIONS) {
       denyRequestPermissions(request.id);
+    } else if (request.type === ALLOW_SIGN_TYPED_DATA) {
+      allowSignTypedData(request.id);
+    } else if (request.type === DENY_SIGN_TYPED_DATA) {
+      denySignTypedData(request.id);
     } else if (request.type === PROVIDER_DELEGATE) {
       const delegatee = request.data.delegatee;
       const data = request.data.data;
@@ -672,6 +741,16 @@ async function submitTransaction(
   });
 }
 
+async function getTypedDataSignature(
+  typedDataRequest: TypedDataRequest,
+): Promise<Hex | null> {
+  if (!walletState.mnemonic) {
+    return null;
+  }
+  const account = mnemonicToAccount(walletState.mnemonic);
+  return await account.signTypedData(typedDataRequest);
+}
+
 export {
   getChainId,
   getAccounts,
@@ -681,10 +760,12 @@ export {
   getPermissions,
   requestPermissions,
   revokePermissions,
+  signTypedData,
 };
 export type {
   ProviderState,
   MessageSender,
   SendTransactionRequest,
   PermissionRequest,
+  TypedDataRequest,
 };

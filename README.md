@@ -16,6 +16,7 @@ Ethereum Wallet for Developers
 - `eth_accounts`
 - `eth_requestAccounts`
 - `personal_sign`
+- `eth_signTypedData_v4`
 - `eth_sendTransaction`
 - `wallet_getPermissions`
 - `wallet_requestPermissions`

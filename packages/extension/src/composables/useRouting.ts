@@ -22,6 +22,9 @@ function useRouting(): void {
   const isProviderRequestingPermissions = computed(
     () => provider.isRequestingPermissions.value,
   );
+  const isProviderSigningTypedData = computed(
+    () => provider.isSigningTypedData.value,
+  );
 
   watch(isProviderRequestingAccount, (value) => {
     if (!hasWalletAddress.value) {
@@ -67,6 +70,17 @@ function useRouting(): void {
     }
   });
 
+  watch(isProviderSigningTypedData, (value) => {
+    if (!hasWalletAddress.value) {
+      return;
+    }
+    if (value) {
+      router.push({ name: 'sign-typed-data' });
+    } else {
+      router.push({ name: 'home' });
+    }
+  });
+
   watch(
     hasWalletAddress,
     (value) => {
@@ -88,6 +102,10 @@ function useRouting(): void {
       }
       if (isProviderRequestingPermissions.value) {
         router.push({ name: 'request-permissions' });
+        return;
+      }
+      if (isProviderSigningTypedData.value) {
+        router.push({ name: 'sign-typed-data' });
         return;
       }
       router.push({ name: 'home' });

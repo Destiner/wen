@@ -14,6 +14,8 @@ import {
   requestPermissions,
   getPermissions,
   revokePermissions,
+  TypedDataRequest,
+  signTypedData,
 } from './provider';
 
 init();
@@ -169,6 +171,28 @@ function setupProviderConnection(port: Runtime.Port): void {
         jsonrpc: '2.0',
         id: data.id,
         result: null,
+      });
+    }
+    if (data.method === 'eth_signTypedData_v4') {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const params = data.params as [Address, TypedDataRequest];
+      const request = params[1];
+      openPopup();
+      signTypedData(id, sender, request, (response) => {
+        if (response.status === true) {
+          port.postMessage({
+            jsonrpc: '2.0',
+            id: data.id,
+            result: response.result,
+          });
+        } else {
+          port.postMessage({
+            jsonrpc: '2.0',
+            id: data.id,
+            error: response.error,
+          });
+        }
       });
     }
   });

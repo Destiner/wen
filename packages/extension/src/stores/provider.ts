@@ -6,6 +6,7 @@ import {
   MessageSender,
   PermissionRequest,
   SendTransactionRequest,
+  TypedDataRequest,
 } from '@/background/provider';
 
 const useProviderStore = defineStore('provider', () => {
@@ -21,6 +22,8 @@ const useProviderStore = defineStore('provider', () => {
   const providerPersonalSignSignature = ref<Hex | null>(null);
   const isRequestingPermissions = ref<boolean>(false);
   const permissionRequest = ref<PermissionRequest | null>(null);
+  const isSigningTypedData = ref<boolean>(false);
+  const typedDataRequest = ref<TypedDataRequest | null>(null);
 
   function setRequestId(value: string | number | null): void {
     requestId.value = value;
@@ -70,6 +73,14 @@ const useProviderStore = defineStore('provider', () => {
     permissionRequest.value = value;
   }
 
+  function setIsSigningTypedData(value: boolean): void {
+    isSigningTypedData.value = value;
+  }
+
+  function setTypedDataRequest(value: TypedDataRequest | null): void {
+    typedDataRequest.value = value;
+  }
+
   return {
     requestId,
     requestSender,
@@ -83,6 +94,9 @@ const useProviderStore = defineStore('provider', () => {
     providerPersonalSignSignature,
     isRequestingPermissions,
     permissionRequest,
+    isSigningTypedData,
+    typedDataRequest,
+
     setRequestId,
     setRequestSender,
     setIsRequestingAccounts,
@@ -95,6 +109,8 @@ const useProviderStore = defineStore('provider', () => {
     setProviderPersonalSignSignature,
     setIsRequestingPermissions,
     setPermissionRequest,
+    setIsSigningTypedData,
+    setTypedDataRequest,
   };
 });
 

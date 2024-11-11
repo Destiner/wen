@@ -1,6 +1,10 @@
 import { Address, Hex } from 'viem';
 
-import { PermissionRequest, SendTransactionRequest } from './provider';
+import {
+  PermissionRequest,
+  SendTransactionRequest,
+  TypedDataRequest,
+} from './provider';
 
 const ALLOW_ACCOUNT_REQUEST = 'ALLOW_ACCOUNT_REQUEST';
 const DENY_ACCOUNT_REQUEST = 'DENY_ACCOUNT_REQUEST';
@@ -10,6 +14,8 @@ const ALLOW_SEND_TRANSACTION = 'ALLOW_SEND_TRANSACTION';
 const DENY_SEND_TRANSACTION = 'DENY_SEND_TRANSACTION';
 const ALLOW_REQUEST_PERMISSIONS = 'ALLOW_REQUEST_PERMISSIONS';
 const DENY_REQUEST_PERMISSIONS = 'DENY_REQUEST_PERMISSIONS';
+const ALLOW_SIGN_TYPED_DATA = 'ALLOW_SIGN_TYPED_DATA';
+const DENY_SIGN_TYPED_DATA = 'DENY_SIGN_TYPED_DATA';
 const PROVIDER_DELEGATE = 'PROVIDER_DELEGATE';
 const PROVIDER_UNDELEGATE = 'PROVIDER_UNDELEGATE';
 const PROVIDER_PERSONAL_SIGN = 'PROVIDER_PERSONAL_SIGN';
@@ -22,6 +28,7 @@ const REQUEST_ACCOUNTS = 'REQUEST_ACCOUNTS';
 const PERSONAL_SIGN = 'PERSONAL_SIGN';
 const SEND_TRANSACTION = 'SEND_TRANSACTION';
 const REQUEST_PERMISSIONS = 'REQUEST_PERMISSIONS';
+const SIGN_TYPED_DATA = 'SIGN_TYPED_DATA';
 const PROVIDER_DELEGATE_RESULT = 'PROVIDER_DELEGATE_RESULT';
 const PROVIDER_UNDELEGATE_RESULT = 'PROVIDER_UNDELEGATE_RESULT';
 const PROVIDER_PERSONAL_SIGN_RESULT = 'PROVIDER_PERSONAL_SIGN_RESULT';
@@ -56,6 +63,8 @@ type FrontendRequestMessageType =
   | typeof DENY_SEND_TRANSACTION
   | typeof ALLOW_REQUEST_PERMISSIONS
   | typeof DENY_REQUEST_PERMISSIONS
+  | typeof ALLOW_SIGN_TYPED_DATA
+  | typeof DENY_SIGN_TYPED_DATA
   | typeof PROVIDER_DELEGATE
   | typeof PROVIDER_UNDELEGATE
   | typeof PROVIDER_PERSONAL_SIGN
@@ -69,6 +78,7 @@ type BackendRequestMessageType =
   | typeof PERSONAL_SIGN
   | typeof SEND_TRANSACTION
   | typeof REQUEST_PERMISSIONS
+  | typeof SIGN_TYPED_DATA
   | typeof PROVIDER_DELEGATE_RESULT
   | typeof PROVIDER_UNDELEGATE_RESULT
   | typeof PROVIDER_PERSONAL_SIGN_RESULT;
@@ -98,6 +108,12 @@ type AllowRequestPermissionsMessage = BaseIdRequestMessage<
 >;
 type DenyRequestPermissionsMessage = BaseIdRequestMessage<
   typeof DENY_REQUEST_PERMISSIONS
+>;
+type AllowSignTypedDataMessage = BaseIdRequestMessage<
+  typeof ALLOW_SIGN_TYPED_DATA
+>;
+type DenySignTypedDataMessage = BaseIdRequestMessage<
+  typeof DENY_SIGN_TYPED_DATA
 >;
 type ProviderDelegateMessage = BaseIdRequestMessage<
   typeof PROVIDER_DELEGATE,
@@ -139,6 +155,12 @@ type RequestPermissionsMessage = BaseRequestMessage<
     permissionRequest: PermissionRequest;
   }
 >;
+type SignTypedDataMessage = BaseRequestMessage<
+  typeof SIGN_TYPED_DATA,
+  {
+    typedDataRequest: TypedDataRequest;
+  }
+>;
 type ProviderDelegateResultMessage = BaseRequestMessage<
   typeof PROVIDER_DELEGATE_RESULT,
   {
@@ -167,6 +189,8 @@ type FrontendRequestMessage =
   | DenySendTransactionMessage
   | AllowRequestPermissionsMessage
   | DenyRequestPermissionsMessage
+  | AllowSignTypedDataMessage
+  | DenySignTypedDataMessage
   | ProviderDelegateMessage
   | ProviderUndelegateMessage
   | ProviderPersonalSignMessage
@@ -180,6 +204,7 @@ type BackendRequestMessage =
   | PersonalSignMessage
   | SendTransactionMessage
   | RequestPermissionsMessage
+  | SignTypedDataMessage
   | ProviderDelegateResultMessage
   | ProviderUndelegateResultMessage
   | ProviderPersonalSignResultMessage;
@@ -195,6 +220,8 @@ export {
   DENY_SEND_TRANSACTION,
   ALLOW_REQUEST_PERMISSIONS,
   DENY_REQUEST_PERMISSIONS,
+  ALLOW_SIGN_TYPED_DATA,
+  DENY_SIGN_TYPED_DATA,
   PROVIDER_DELEGATE,
   PROVIDER_UNDELEGATE,
   PROVIDER_PERSONAL_SIGN,
@@ -206,6 +233,7 @@ export {
   PERSONAL_SIGN,
   SEND_TRANSACTION,
   REQUEST_PERMISSIONS,
+  SIGN_TYPED_DATA,
   PROVIDER_DELEGATE_RESULT,
   PROVIDER_UNDELEGATE_RESULT,
   PROVIDER_PERSONAL_SIGN_RESULT,
@@ -223,6 +251,8 @@ export type {
   DenySendTransactionMessage,
   AllowRequestPermissionsMessage,
   DenyRequestPermissionsMessage,
+  AllowSignTypedDataMessage,
+  DenySignTypedDataMessage,
   ProviderDelegateMessage,
   ProviderUndelegateMessage,
   ProviderPersonalSignMessage,
@@ -231,6 +261,7 @@ export type {
   GetWalletMnemonicMessage,
   SetWalletMnemonicMessage,
   RequestAccountsMessage,
+  SignTypedDataMessage,
   PersonalSignMessage,
   SendTransactionMessage,
   RequestPermissionsMessage,

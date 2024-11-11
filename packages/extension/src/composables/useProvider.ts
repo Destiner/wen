@@ -7,6 +7,7 @@ import {
   PermissionRequest,
   ProviderState,
   SendTransactionRequest,
+  TypedDataRequest,
 } from '@/background/provider';
 import {
   BackendRequestMessage,
@@ -30,6 +31,9 @@ import {
   REQUEST_ACCOUNTS,
   REQUEST_PERMISSIONS,
   SEND_TRANSACTION,
+  ALLOW_SIGN_TYPED_DATA,
+  DENY_SIGN_TYPED_DATA,
+  SIGN_TYPED_DATA,
 } from '@/background/types';
 import useProviderStore from '@/stores/provider';
 
@@ -63,6 +67,11 @@ interface UseProvider {
   permissionRequest: Ref<PermissionRequest | null>;
   allowRequestPermissions: () => void;
   denyRequestPermissions: () => void;
+
+  isSigningTypedData: Ref<boolean>;
+  typedDataRequest: Ref<TypedDataRequest | null>;
+  allowSignTypedData: () => void;
+  denySignTypedData: () => void;
 
   personalSign: (
     message: Hex,
@@ -269,6 +278,33 @@ function useProvider(): UseProvider {
     store.setIsRequestingPermissions(false);
   }
 
+  const isSigningTypedData = computed<boolean>(() => store.isSigningTypedData);
+  const typedDataRequest = computed<TypedDataRequest | null>(
+    () => store.typedDataRequest,
+  );
+  function allowSignTypedData(): void {
+    if (!requestId.value) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId.value,
+      type: ALLOW_SIGN_TYPED_DATA,
+      data: undefined,
+    });
+    store.setIsSigningTypedData(false);
+  }
+  function denySignTypedData(): void {
+    if (!requestId.value) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId.value,
+      type: DENY_SIGN_TYPED_DATA,
+      data: undefined,
+    });
+    store.setIsSigningTypedData(false);
+  }
+
   onMounted(async () => {
     document.addEventListener('DOMContentLoaded', () => {
       chrome.runtime.onMessage.addListener((message: BackendRequestMessage) => {
@@ -344,6 +380,14 @@ function useProvider(): UseProvider {
           store.setPermissionRequest(message.data.permissionRequest);
           store.setRequestId(message.id);
         }
+        if (message.type === SIGN_TYPED_DATA) {
+          if (!message.id) {
+            return;
+          }
+          store.setIsPersonalSigning(true);
+          store.setTypedDataRequest(message.data.typedDataRequest);
+          store.setRequestId(message.id);
+        }
         if (message.type === PROVIDER_PERSONAL_SIGN_RESULT) {
           store.setProviderPersonalSignSignature(message.data.signature);
         }
@@ -363,6 +407,8 @@ function useProvider(): UseProvider {
     store.setTransaction(response.transaction);
     store.setIsRequestingPermissions(response.isRequestingPermissions);
     store.setPermissionRequest(response.permissionRequest);
+    store.setIsSigningTypedData(response.isSigningTypedData);
+    store.setTypedDataRequest(response.typedDataRequest);
   });
 
   return {
@@ -389,6 +435,11 @@ function useProvider(): UseProvider {
     permissionRequest,
     allowRequestPermissions,
     denyRequestPermissions,
+
+    isSigningTypedData,
+    typedDataRequest,
+    allowSignTypedData,
+    denySignTypedData,
 
     personalSign,
   };
