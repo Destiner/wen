@@ -54,6 +54,7 @@
             </div>
 
             <div
+              v-if="!accountCodeResult.isFetching.value"
               class="data-row"
               :class="{ invalid: !isValidDelegatee }"
             >
