@@ -117,10 +117,11 @@ type DenySignTypedDataMessage = BaseIdRequestMessage<
 >;
 type ProviderDelegateMessage = BaseIdRequestMessage<
   typeof PROVIDER_DELEGATE,
-  { delegatee: Address; data: Hex }
+  { delegatee: Address; data: Hex; isSponsored: boolean }
 >;
 type ProviderUndelegateMessage = BaseIdRequestMessage<
-  typeof PROVIDER_UNDELEGATE
+  typeof PROVIDER_UNDELEGATE,
+  { isSponsored: boolean }
 >;
 type ProviderPersonalSignMessage = BaseIdRequestMessage<
   typeof PROVIDER_PERSONAL_SIGN,

@@ -59,9 +59,13 @@ interface UseProvider {
   delegate: (
     delegatee: Address,
     data: Hex,
+    isSponsored: boolean,
     cb: (txHash: Hex | null) => void,
   ) => Promise<void>;
-  undelegate: (cb: (txHash: Hex | null) => void) => Promise<void>;
+  undelegate: (
+    isSponsored: boolean,
+    cb: (txHash: Hex | null) => void,
+  ) => Promise<void>;
 
   isRequestingPermissions: Ref<boolean>;
   permissionRequest: Ref<PermissionRequest | null>;
@@ -180,6 +184,7 @@ function useProvider(): UseProvider {
   async function delegate(
     delegatee: Address,
     data: Hex,
+    isSponsored: boolean,
     cb: (txHash: Hex | null) => void,
   ): Promise<void> {
     chrome.runtime.sendMessage<FrontendRequestMessage>({
@@ -188,6 +193,7 @@ function useProvider(): UseProvider {
       data: {
         delegatee,
         data,
+        isSponsored,
       },
     });
     delegationCallback.value = cb;
@@ -205,11 +211,16 @@ function useProvider(): UseProvider {
   const undelegationTxHash = computed<Hex | null>(
     () => store.undelegationTxHash,
   );
-  async function undelegate(cb: (txHash: Hex | null) => void): Promise<void> {
+  async function undelegate(
+    isSponsored: boolean,
+    cb: (txHash: Hex | null) => void,
+  ): Promise<void> {
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: Math.random(),
       type: PROVIDER_UNDELEGATE,
-      data: undefined,
+      data: {
+        isSponsored,
+      },
     });
     undelegationCallback.value = cb;
   }

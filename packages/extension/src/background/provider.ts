@@ -439,7 +439,52 @@ function denySignTypedData(id: string | number): void {
   }
 }
 
-async function delegate(delegatee: Address, data: Hex): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function walletSendTransactionExtension(
+  client: ReturnType<typeof createPublicClient>,
+) {
+  return {
+    async walletSendTransaction(transaction: {
+      authorizationList?: {
+        address: Address;
+        chainId: number;
+        nonce: number;
+        r: Hex;
+        s: Hex;
+        yParity: number;
+      }[];
+      data?: Hex;
+      to: Address;
+    }): Promise<Hex | null> {
+      const response = (await client.request({
+        method: 'wallet_sendTransaction',
+        params: [
+          {
+            authorizationList: transaction.authorizationList
+              ? transaction.authorizationList.map((authorization) => ({
+                  address: authorization.address,
+                  chainId: `0x${authorization.chainId.toString(16)}` as Hex,
+                  nonce: `0x${authorization.nonce.toString(16)}` as Hex,
+                  r: authorization.r,
+                  s: authorization.s,
+                  yParity: `0x${authorization.yParity.toString(16)}` as Hex,
+                }))
+              : undefined,
+            data: transaction.data,
+            to: transaction.to,
+          },
+        ],
+      })) as Hex | null;
+      return response;
+    },
+  };
+}
+
+async function delegate(
+  delegatee: Address,
+  data: Hex,
+  isSponsored: boolean,
+): Promise<void> {
   if (!walletState.mnemonic) {
     chrome.runtime.sendMessage<BackendRequestMessage>({
       type: PROVIDER_DELEGATE_RESULT,
@@ -451,6 +496,13 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
     return;
   }
   const account = mnemonicToAccount(walletState.mnemonic);
+  const publicClient = createPublicClient({
+    chain: odysseyTestnet,
+    transport: http(),
+  }).extend(walletSendTransactionExtension);
+  const nonce = await publicClient.getTransactionCount({
+    address: account.address,
+  });
   const walletClient = createWalletClient({
     account,
     chain: odysseyTestnet,
@@ -458,19 +510,51 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
   }).extend(eip7702Actions());
   const authorization = await walletClient.signAuthorization({
     contractAddress: delegatee,
+    nonce,
   });
 
-  try {
-    const txHash = await walletClient.sendTransaction({
-      authorizationList: [authorization],
-      data,
-      to: walletClient.account.address,
+  if (authorization.yParity === undefined) {
+    chrome.runtime.sendMessage<BackendRequestMessage>({
+      type: PROVIDER_DELEGATE_RESULT,
+      data: {
+        txHash: null,
+      },
+      error: 'UNKNOWN',
     });
+    return;
+  }
 
-    const publicClient = createPublicClient({
-      chain: odysseyTestnet,
-      transport: http(),
-    });
+  try {
+    const txHash = isSponsored
+      ? await publicClient.walletSendTransaction({
+          authorizationList: [
+            {
+              address: authorization.contractAddress,
+              chainId: authorization.chainId,
+              nonce: authorization.nonce,
+              r: authorization.r,
+              s: authorization.s,
+              yParity: authorization.yParity,
+            },
+          ],
+          data,
+          to: walletClient.account.address,
+        })
+      : await walletClient.sendTransaction({
+          authorizationList: [authorization],
+          data,
+          to: walletClient.account.address,
+        });
+    if (!txHash) {
+      chrome.runtime.sendMessage<BackendRequestMessage>({
+        type: PROVIDER_DELEGATE_RESULT,
+        data: {
+          txHash: null,
+        },
+        error: 'UNKNOWN',
+      });
+      return;
+    }
     await publicClient.waitForTransactionReceipt({
       hash: txHash,
     });
@@ -490,6 +574,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
         },
         error: 'UNKNOWN',
       });
+      return;
     }
     if (
       !error.cause ||
@@ -502,6 +587,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
         },
         error: 'UNKNOWN',
       });
+      return;
     }
     chrome.runtime.sendMessage<BackendRequestMessage>({
       type: PROVIDER_DELEGATE_RESULT,
@@ -513,7 +599,7 @@ async function delegate(delegatee: Address, data: Hex): Promise<void> {
   }
 }
 
-async function undelegate(): Promise<void> {
+async function undelegate(isSponsored: boolean): Promise<void> {
   if (!walletState.mnemonic) {
     chrome.runtime.sendMessage<BackendRequestMessage>({
       type: PROVIDER_UNDELEGATE_RESULT,
@@ -525,6 +611,13 @@ async function undelegate(): Promise<void> {
     return;
   }
   const account = mnemonicToAccount(walletState.mnemonic);
+  const publicClient = createPublicClient({
+    chain: odysseyTestnet,
+    transport: http(),
+  }).extend(walletSendTransactionExtension);
+  const nonce = await publicClient.getTransactionCount({
+    address: account.address,
+  });
   const walletClient = createWalletClient({
     account,
     chain: odysseyTestnet,
@@ -533,18 +626,52 @@ async function undelegate(): Promise<void> {
 
   const authorization = await walletClient.signAuthorization({
     contractAddress: zeroAddress,
+    nonce,
   });
-  try {
-    const txHash = await walletClient.sendTransaction({
-      authorizationList: [authorization],
-      data: '0x',
-      to: walletClient.account.address,
-    });
 
-    const publicClient = createPublicClient({
-      chain: odysseyTestnet,
-      transport: http(),
+  if (authorization.yParity === undefined) {
+    chrome.runtime.sendMessage<BackendRequestMessage>({
+      type: PROVIDER_DELEGATE_RESULT,
+      data: {
+        txHash: null,
+      },
+      error: 'UNKNOWN',
     });
+    return;
+  }
+
+  try {
+    const txHash = isSponsored
+      ? await publicClient.walletSendTransaction({
+          authorizationList: [
+            {
+              address: authorization.contractAddress,
+              chainId: odysseyTestnet.id,
+              nonce: authorization.nonce,
+              r: authorization.r,
+              s: authorization.s,
+              yParity: authorization.yParity,
+            },
+          ],
+          data: '0x',
+          to: walletClient.account.address,
+        })
+      : await walletClient.sendTransaction({
+          authorizationList: [authorization],
+          data: '0x',
+          to: walletClient.account.address,
+        });
+    if (!txHash) {
+      chrome.runtime.sendMessage<BackendRequestMessage>({
+        type: PROVIDER_DELEGATE_RESULT,
+        data: {
+          txHash: null,
+        },
+        error: 'UNKNOWN',
+      });
+      return;
+    }
+
     await publicClient.waitForTransactionReceipt({
       hash: txHash,
     });
@@ -644,9 +771,11 @@ chrome.runtime.onMessage.addListener(
     } else if (request.type === PROVIDER_DELEGATE) {
       const delegatee = request.data.delegatee;
       const data = request.data.data;
-      await delegate(delegatee, data);
+      const isSponsored = request.data.isSponsored;
+      await delegate(delegatee, data, isSponsored);
     } else if (request.type === PROVIDER_UNDELEGATE) {
-      await undelegate();
+      const isSponsored = request.data.isSponsored;
+      await undelegate(isSponsored);
     } else if (request.type === PROVIDER_PERSONAL_SIGN) {
       const message = request.data.message;
       await providerPersonalSign(message);

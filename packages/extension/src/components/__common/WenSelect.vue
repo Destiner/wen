@@ -6,6 +6,7 @@
     <Select.Trigger
       as-child
       :aria-label="placeholder"
+      :disabled
     >
       <button class="trigger">
         <Select.Value
@@ -71,9 +72,14 @@ const model = defineModel<Option['value']>({
   required: true,
 });
 
-const props = defineProps<{
+const {
+  options,
+  placeholder,
+  disabled = false,
+} = defineProps<{
   options: Option[];
   placeholder: string;
+  disabled?: boolean;
 }>();
 
 function handleModelValueUpdate(newValue: string): void {
@@ -81,10 +87,8 @@ function handleModelValueUpdate(newValue: string): void {
 }
 
 const selectedLabel = computed(() => {
-  const selectedOption = props.options.find(
-    (option) => option.value === model.value,
-  );
-  return selectedOption?.label ?? props.placeholder;
+  const selectedOption = options.find((option) => option.value === model.value);
+  return selectedOption?.label ?? placeholder;
 });
 </script>
 
@@ -110,6 +114,11 @@ export type { Option };
   background: var(--background-secondary);
   color: var(--text-primary);
   font-size: 16px;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
 .icon {

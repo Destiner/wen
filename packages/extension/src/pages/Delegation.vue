@@ -18,6 +18,7 @@
         v-model="selectedDelegationType"
         placeholder="Select delegation type"
         :options="delegationTypes"
+        :disabled="isDelegating || isUndelegating"
       />
       <template v-if="selectedDelegationType === CUSTOM">
         <WenInput
@@ -38,6 +39,11 @@
           @blur="handleInitializationDataInputBlur"
         />
       </template>
+      <WenToggle
+        v-model:model-value="isSequencerSponsorshipEnabled"
+        label="Sequencer Sponsorship"
+        :disabled="isDelegating || isUndelegating"
+      />
     </template>
 
     <template #footer>
@@ -57,12 +63,6 @@
           </ul>
         </template>
       </WenInfoBlock>
-      <WenInfoBlock
-        v-else
-        type="error"
-      >
-        <template #default> {{ errorText }} </template>
-      </WenInfoBlock>
       <WenButton
         v-if="delegation"
         type="secondary"
@@ -71,6 +71,12 @@
         :disabled="isUndelegating"
         @click="removeDelegation"
       />
+      <WenInfoBlock
+        v-if="!isValid"
+        type="error"
+      >
+        <template #default> {{ errorText }} </template>
+      </WenInfoBlock>
       <WenButton
         type="primary"
         size="large"
@@ -83,7 +89,6 @@
 </template>
 
 <script setup lang="ts">
-import { useIntervalFn } from '@vueuse/core';
 import {
   Address,
   concat,
@@ -100,7 +105,7 @@ import {
 } from 'viem';
 import { getCode, getStorageAt } from 'viem/actions';
 import { odysseyTestnet } from 'viem/chains';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import WenButton from '@/components/__common/WenButton.vue';
@@ -108,6 +113,7 @@ import WenInfoBlock from '@/components/__common/WenInfoBlock.vue';
 import WenInput from '@/components/__common/WenInput.vue';
 import WenPage from '@/components/__common/WenPage.vue';
 import WenSelect from '@/components/__common/WenSelect.vue';
+import WenToggle from '@/components/__common/WenToggle.vue';
 import { useProvider } from '@/composables/useProvider';
 import { useWallet } from '@/composables/useWallet';
 import {
@@ -138,17 +144,10 @@ const delegationTypes = ref([
 
 const delegation = ref<Address | null>(null);
 const isAlreadyInitialized = ref(false);
-useIntervalFn(
-  () => {
-    fetchDelegation();
-    fetchInitialization();
-  },
-  10 * 1000,
-  {
-    immediate: true,
-    immediateCallback: true,
-  },
-);
+onMounted(async () => {
+  fetchDelegation();
+  fetchInitialization();
+});
 async function fetchDelegation(): Promise<void> {
   if (!walletAddress.value) {
     return;
@@ -301,6 +300,7 @@ const errorText = computed(() => {
 });
 
 const isDelegating = ref(false);
+const isSequencerSponsorshipEnabled = ref(false);
 async function delegate(): Promise<void> {
   if (!isValid.value) {
     isDelegateeAddressInputDirty.value = true;
@@ -311,17 +311,22 @@ async function delegate(): Promise<void> {
     ? (initializationData.value as Hex)
     : '0x';
   isDelegating.value = true;
-  await providerDelegate(delegateeAddress.value as Address, data, (txHash) => {
-    isDelegating.value = false;
-    if (txHash) {
-      openHomePage();
-    }
-  });
+  await providerDelegate(
+    delegateeAddress.value as Address,
+    data,
+    isSequencerSponsorshipEnabled.value,
+    (txHash) => {
+      isDelegating.value = false;
+      if (txHash) {
+        openHomePage();
+      }
+    },
+  );
 }
 const isUndelegating = ref(false);
 async function removeDelegation(): Promise<void> {
   isUndelegating.value = true;
-  await providerUndelegate((txHash) => {
+  await providerUndelegate(isSequencerSponsorshipEnabled.value, (txHash) => {
     isUndelegating.value = false;
     if (txHash) {
       openHomePage();
