@@ -275,8 +275,7 @@ async function enableSessionKeyModule(): Promise<void> {
       }),
       transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
     });
-    const opHash = await submitOp(walletAddress.value, bundlerClient, op);
-    console.log('opHash', opHash);
+    await submitOp(walletAddress.value, bundlerClient, op);
   });
 }
 
@@ -313,8 +312,7 @@ async function disableSessionKeyModule(): Promise<void> {
       }),
       transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
     });
-    const opHash = await submitOp(walletAddress.value, bundlerClient, op);
-    console.log('opHash', opHash);
+    await submitOp(walletAddress.value, bundlerClient, op);
   });
 }
 </script>
