@@ -25,13 +25,13 @@ button {
   padding-inline: 0;
   border-width: 0;
   background-color: rgb(0 0 0 / 0%);
-  color: rgb(17 17 17);
+  color: var(--text-primary);
   font-size: 14px;
   cursor: pointer;
 
-  --chrome: #e1dddd;
-  --border-top: #ccc;
-  --border-bottom: #ccc;
+  --chrome: #2e3034;
+  --border-top: #4a4c52;
+  --border-bottom: #4a4c52;
 
   &:disabled {
     opacity: 0.6;
@@ -90,7 +90,7 @@ button {
   }
 
   &:hover {
-    --border-top: #aaa;
+    --border-top: #57585d;
 
     .chrome {
       transform: translateY(-1px);

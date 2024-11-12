@@ -419,7 +419,6 @@ function getBlockExplorerTxUrl(hash: Hex): string {
   justify-content: center;
   min-height: 100vh;
   margin: 32px 16px;
-  background: #f3f4ef;
 }
 
 @media (width >= 768px) {
@@ -441,9 +440,9 @@ function getBlockExplorerTxUrl(hash: Hex): string {
   display: flex;
   flex-direction: column;
   padding: 8px;
-  border: 1px solid #dadbd2;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--background-secondary);
   gap: 24px;
 }
 
@@ -480,7 +479,7 @@ function getBlockExplorerTxUrl(hash: Hex): string {
 
   .value {
     overflow: hidden;
-    color: #111;
+    color: var(--text-primary);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -492,7 +491,7 @@ function getBlockExplorerTxUrl(hash: Hex): string {
   }
 
   .label {
-    color: #737373;
+    color: var(--text-secondary);
     font-size: 12px;
   }
 }
@@ -510,9 +509,9 @@ function getBlockExplorerTxUrl(hash: Hex): string {
     .action-result {
       display: inline-flex;
       padding: 6px 10px;
-      border: 1px solid #dadbd2;
+      border: 1px solid var(--border);
       border-radius: 6px;
-      background: #e5e7e0;
+      background: var(--background-primary);
       font-family: Consolas, Inconsolata, monospace;
       font-size: 13px;
       gap: 4px;
@@ -520,7 +519,7 @@ function getBlockExplorerTxUrl(hash: Hex): string {
       .icon {
         width: 16px;
         height: 16px;
-        color: #111;
+        color: var(--text-primary);
       }
     }
   }

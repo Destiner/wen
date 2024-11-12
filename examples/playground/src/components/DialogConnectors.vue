@@ -73,7 +73,7 @@ function handleClick(connector: Connector): void {
   padding: 16px;
   transform: translate(-50%, -50%);
   border-radius: 6px;
-  background: #fff;
+  background: var(--background-secondary);
   box-shadow:
     hsl(206deg 22% 7% / 35%) 0 10px 38px -10px,
     hsl(206deg 22% 7% / 20%) 0 10px 20px -15px;
@@ -99,7 +99,7 @@ function handleClick(connector: Connector): void {
 
   &:hover {
     border-radius: 6px;
-    background-color: #e4e5de;
+    background: #2c2c2c;
   }
 }
 

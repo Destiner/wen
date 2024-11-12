@@ -11,6 +11,12 @@ import { RouterView } from 'vue-router';
 <!-- eslint-disable-next-line vue/enforce-style-attribute -->
 <style>
 :root {
+  --background-primary: #1d1f27;
+  --background-secondary: #20242b;
+  --accent: #eb2ab1;
+  --text-primary: #eeefea;
+  --text-secondary: #c5c6c3;
+  --border: #4a4c52;
   --font-sans: -apple-system, 'BlinkMacSystemFont', avenir next, avenir,
     segoe ui, helvetica neue, helvetica, 'Ubuntu', roboto, noto, arial,
     sans-serif;
@@ -23,7 +29,8 @@ import { RouterView } from 'vue-router';
 
 body {
   margin: 0;
-  background: #f3f4ef;
+  background: #1d1f27;
+  color: #eeefea;
   font-family: var(--font-sans);
 }
 
