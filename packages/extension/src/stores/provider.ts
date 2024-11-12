@@ -7,6 +7,7 @@ import {
   PermissionRequest,
   SendTransactionRequest,
   TypedDataRequest,
+  WalletCallRequest,
 } from '@/background/provider';
 
 const useProviderStore = defineStore('provider', () => {
@@ -24,6 +25,8 @@ const useProviderStore = defineStore('provider', () => {
   const permissionRequest = ref<PermissionRequest | null>(null);
   const isSigningTypedData = ref<boolean>(false);
   const typedDataRequest = ref<TypedDataRequest | null>(null);
+  const isWalletSendingCalls = ref<boolean>(false);
+  const walletCallRequest = ref<WalletCallRequest | null>(null);
 
   function setRequestId(value: string | number | null): void {
     requestId.value = value;
@@ -81,6 +84,14 @@ const useProviderStore = defineStore('provider', () => {
     typedDataRequest.value = value;
   }
 
+  function setIsWalletSendingCalls(value: boolean): void {
+    isWalletSendingCalls.value = value;
+  }
+
+  function setWalletCallRequest(value: WalletCallRequest | null): void {
+    walletCallRequest.value = value;
+  }
+
   return {
     requestId,
     requestSender,
@@ -96,6 +107,8 @@ const useProviderStore = defineStore('provider', () => {
     permissionRequest,
     isSigningTypedData,
     typedDataRequest,
+    isWalletSendingCalls,
+    walletCallRequest,
 
     setRequestId,
     setRequestSender,
@@ -111,6 +124,8 @@ const useProviderStore = defineStore('provider', () => {
     setPermissionRequest,
     setIsSigningTypedData,
     setTypedDataRequest,
+    setIsWalletSendingCalls,
+    setWalletCallRequest,
   };
 });
 

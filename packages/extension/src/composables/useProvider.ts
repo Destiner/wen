@@ -8,6 +8,7 @@ import {
   ProviderState,
   SendTransactionRequest,
   TypedDataRequest,
+  WalletCallRequest,
 } from '@/background/provider';
 import {
   BackendRequestMessage,
@@ -34,6 +35,9 @@ import {
   ALLOW_SIGN_TYPED_DATA,
   DENY_SIGN_TYPED_DATA,
   SIGN_TYPED_DATA,
+  WALLET_SEND_CALLS,
+  ALLOW_WALLET_SEND_CALLS,
+  DENY_WALLET_SEND_CALLS,
 } from '@/background/types';
 import useProviderStore from '@/stores/provider';
 import { promisify } from '@/utils';
@@ -75,6 +79,11 @@ interface UseProvider {
   denySignTypedData: () => void;
 
   personalSign: (message: Hex) => Promise<Hex | null>;
+
+  isWalletSendingCalls: Ref<boolean>;
+  walletCallRequest: Ref<WalletCallRequest | null>;
+  allowWalletSendCalls: () => void;
+  denyWalletSendCalls: () => void;
 }
 
 function useProvider(): UseProvider {
@@ -308,6 +317,35 @@ function useProvider(): UseProvider {
     store.setIsSigningTypedData(false);
   }
 
+  const isWalletSendingCalls = computed<boolean>(
+    () => store.isWalletSendingCalls,
+  );
+  const walletCallRequest = computed<WalletCallRequest | null>(
+    () => store.walletCallRequest,
+  );
+  function allowWalletSendCalls(): void {
+    if (!requestId.value) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId.value,
+      type: ALLOW_WALLET_SEND_CALLS,
+      data: undefined,
+    });
+    store.setIsWalletSendingCalls(false);
+  }
+  function denyWalletSendCalls(): void {
+    if (!requestId.value) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId.value,
+      type: DENY_WALLET_SEND_CALLS,
+      data: undefined,
+    });
+    store.setIsWalletSendingCalls(false);
+  }
+
   onMounted(async () => {
     document.addEventListener('DOMContentLoaded', () => {
       chrome.runtime.onMessage.addListener((message: BackendRequestMessage) => {
@@ -394,6 +432,14 @@ function useProvider(): UseProvider {
         if (message.type === PROVIDER_PERSONAL_SIGN_RESULT) {
           store.setProviderPersonalSignSignature(message.data.signature);
         }
+        if (message.type === WALLET_SEND_CALLS) {
+          if (!message.id) {
+            return;
+          }
+          store.setIsWalletSendingCalls(true);
+          store.setWalletCallRequest(message.data.walletCallRequest);
+          store.setRequestId(message.id);
+        }
       });
     });
     const response = (await chrome.runtime.sendMessage<FrontendRequestMessage>({
@@ -412,6 +458,8 @@ function useProvider(): UseProvider {
     store.setPermissionRequest(response.permissionRequest);
     store.setIsSigningTypedData(response.isSigningTypedData);
     store.setTypedDataRequest(response.typedDataRequest);
+    store.setIsWalletSendingCalls(response.isWalletSendingCalls);
+    store.setWalletCallRequest(response.walletCallRequest);
   });
 
   return {
@@ -445,6 +493,11 @@ function useProvider(): UseProvider {
     denySignTypedData,
 
     personalSign: promisify(personalSign),
+
+    isWalletSendingCalls,
+    walletCallRequest,
+    allowWalletSendCalls,
+    denyWalletSendCalls,
   };
 }
 

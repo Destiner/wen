@@ -13,6 +13,7 @@ import Permissions from '@/pages/requests/Permissions.vue';
 import PersonalSign from '@/pages/requests/PersonalSign.vue';
 import SendTransaction from '@/pages/requests/SendTransaction.vue';
 import SignTypedData from '@/pages/requests/SignTypedData.vue';
+import WalletSendCalls from '@/pages/requests/WalletSendCalls.vue';
 import { config } from '@/wagmi';
 
 import App from './App.vue';
@@ -49,6 +50,11 @@ const router = createRouter({
       path: '/request-permissions',
       name: 'request-permissions',
       component: Permissions,
+    },
+    {
+      path: '/wallet-send-calls',
+      name: 'wallet-send-calls',
+      component: WalletSendCalls,
     },
   ],
 });

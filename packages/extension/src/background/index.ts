@@ -16,6 +16,8 @@ import {
   revokePermissions,
   TypedDataRequest,
   signTypedData,
+  getCapabilities,
+  walletSendCalls,
 } from './provider';
 
 init();
@@ -180,6 +182,40 @@ function setupProviderConnection(port: Runtime.Port): void {
       const request = params[1];
       openPopup();
       signTypedData(id, sender, request, (response) => {
+        if (response.status === true) {
+          port.postMessage({
+            jsonrpc: '2.0',
+            id: data.id,
+            result: response.result,
+          });
+        } else {
+          port.postMessage({
+            jsonrpc: '2.0',
+            id: data.id,
+            error: response.error,
+          });
+        }
+      });
+    }
+    if (data.method === 'wallet_getCapabilities') {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const params = data.params as [Address];
+      const address = params[0];
+      const capabilities = getCapabilities(address);
+      port.postMessage({
+        jsonrpc: '2.0',
+        id: data.id,
+        result: capabilities,
+      });
+    }
+    if (data.method === 'wallet_sendCalls') {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const params = data.params as [WalletCallRequest];
+      const request = params[0];
+      openPopup();
+      walletSendCalls(id, sender, request, (response) => {
         if (response.status === true) {
           port.postMessage({
             jsonrpc: '2.0',

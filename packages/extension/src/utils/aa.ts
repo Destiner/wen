@@ -336,3 +336,4 @@ export {
   submitOp,
   getOpTxHash,
 };
+export type { Execution };

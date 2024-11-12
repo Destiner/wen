@@ -4,6 +4,7 @@ import {
   PermissionRequest,
   SendTransactionRequest,
   TypedDataRequest,
+  WalletCallRequest,
 } from './provider';
 
 const ALLOW_ACCOUNT_REQUEST = 'ALLOW_ACCOUNT_REQUEST';
@@ -16,6 +17,8 @@ const ALLOW_REQUEST_PERMISSIONS = 'ALLOW_REQUEST_PERMISSIONS';
 const DENY_REQUEST_PERMISSIONS = 'DENY_REQUEST_PERMISSIONS';
 const ALLOW_SIGN_TYPED_DATA = 'ALLOW_SIGN_TYPED_DATA';
 const DENY_SIGN_TYPED_DATA = 'DENY_SIGN_TYPED_DATA';
+const ALLOW_WALLET_SEND_CALLS = 'ALLOW_WALLET_SEND_CALLS';
+const DENY_WALLET_SEND_CALLS = 'DENY_WALLET_SEND_CALLS';
 const PROVIDER_DELEGATE = 'PROVIDER_DELEGATE';
 const PROVIDER_UNDELEGATE = 'PROVIDER_UNDELEGATE';
 const PROVIDER_PERSONAL_SIGN = 'PROVIDER_PERSONAL_SIGN';
@@ -29,6 +32,7 @@ const PERSONAL_SIGN = 'PERSONAL_SIGN';
 const SEND_TRANSACTION = 'SEND_TRANSACTION';
 const REQUEST_PERMISSIONS = 'REQUEST_PERMISSIONS';
 const SIGN_TYPED_DATA = 'SIGN_TYPED_DATA';
+const WALLET_SEND_CALLS = 'WALLET_SEND_CALLS';
 const PROVIDER_DELEGATE_RESULT = 'PROVIDER_DELEGATE_RESULT';
 const PROVIDER_UNDELEGATE_RESULT = 'PROVIDER_UNDELEGATE_RESULT';
 const PROVIDER_PERSONAL_SIGN_RESULT = 'PROVIDER_PERSONAL_SIGN_RESULT';
@@ -65,6 +69,8 @@ type FrontendRequestMessageType =
   | typeof DENY_REQUEST_PERMISSIONS
   | typeof ALLOW_SIGN_TYPED_DATA
   | typeof DENY_SIGN_TYPED_DATA
+  | typeof ALLOW_WALLET_SEND_CALLS
+  | typeof DENY_WALLET_SEND_CALLS
   | typeof PROVIDER_DELEGATE
   | typeof PROVIDER_UNDELEGATE
   | typeof PROVIDER_PERSONAL_SIGN
@@ -79,6 +85,7 @@ type BackendRequestMessageType =
   | typeof SEND_TRANSACTION
   | typeof REQUEST_PERMISSIONS
   | typeof SIGN_TYPED_DATA
+  | typeof WALLET_SEND_CALLS
   | typeof PROVIDER_DELEGATE_RESULT
   | typeof PROVIDER_UNDELEGATE_RESULT
   | typeof PROVIDER_PERSONAL_SIGN_RESULT;
@@ -114,6 +121,12 @@ type AllowSignTypedDataMessage = BaseIdRequestMessage<
 >;
 type DenySignTypedDataMessage = BaseIdRequestMessage<
   typeof DENY_SIGN_TYPED_DATA
+>;
+type AllowWalletSendCallsMessage = BaseIdRequestMessage<
+  typeof ALLOW_WALLET_SEND_CALLS
+>;
+type DenyWalletSendCallsMessage = BaseIdRequestMessage<
+  typeof DENY_WALLET_SEND_CALLS
 >;
 type ProviderDelegateMessage = BaseIdRequestMessage<
   typeof PROVIDER_DELEGATE,
@@ -162,6 +175,12 @@ type SignTypedDataMessage = BaseRequestMessage<
     typedDataRequest: TypedDataRequest;
   }
 >;
+type WalletSendCallsMessage = BaseRequestMessage<
+  typeof WALLET_SEND_CALLS,
+  {
+    walletCallRequest: WalletCallRequest;
+  }
+>;
 type ProviderDelegateResultMessage = BaseRequestMessage<
   typeof PROVIDER_DELEGATE_RESULT,
   {
@@ -192,6 +211,8 @@ type FrontendRequestMessage =
   | DenyRequestPermissionsMessage
   | AllowSignTypedDataMessage
   | DenySignTypedDataMessage
+  | AllowWalletSendCallsMessage
+  | DenyWalletSendCallsMessage
   | ProviderDelegateMessage
   | ProviderUndelegateMessage
   | ProviderPersonalSignMessage
@@ -206,6 +227,7 @@ type BackendRequestMessage =
   | SendTransactionMessage
   | RequestPermissionsMessage
   | SignTypedDataMessage
+  | WalletSendCallsMessage
   | ProviderDelegateResultMessage
   | ProviderUndelegateResultMessage
   | ProviderPersonalSignResultMessage;
@@ -223,6 +245,8 @@ export {
   DENY_REQUEST_PERMISSIONS,
   ALLOW_SIGN_TYPED_DATA,
   DENY_SIGN_TYPED_DATA,
+  ALLOW_WALLET_SEND_CALLS,
+  DENY_WALLET_SEND_CALLS,
   PROVIDER_DELEGATE,
   PROVIDER_UNDELEGATE,
   PROVIDER_PERSONAL_SIGN,
@@ -235,6 +259,7 @@ export {
   SEND_TRANSACTION,
   REQUEST_PERMISSIONS,
   SIGN_TYPED_DATA,
+  WALLET_SEND_CALLS,
   PROVIDER_DELEGATE_RESULT,
   PROVIDER_UNDELEGATE_RESULT,
   PROVIDER_PERSONAL_SIGN_RESULT,
@@ -254,6 +279,8 @@ export type {
   DenyRequestPermissionsMessage,
   AllowSignTypedDataMessage,
   DenySignTypedDataMessage,
+  AllowWalletSendCallsMessage,
+  DenyWalletSendCallsMessage,
   ProviderDelegateMessage,
   ProviderUndelegateMessage,
   ProviderPersonalSignMessage,
@@ -266,6 +293,7 @@ export type {
   PersonalSignMessage,
   SendTransactionMessage,
   RequestPermissionsMessage,
+  WalletSendCallsMessage,
   ProviderDelegateResultMessage,
   ProviderUndelegateResultMessage,
   ProviderPersonalSignResultMessage,

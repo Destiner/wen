@@ -25,6 +25,9 @@ function useRouting(): void {
   const isProviderSigningTypedData = computed(
     () => provider.isSigningTypedData.value,
   );
+  const isProviderWalletSendingCalls = computed(
+    () => provider.isWalletSendingCalls.value,
+  );
 
   watch(isProviderRequestingAccount, (value) => {
     if (!hasWalletAddress.value) {
@@ -81,6 +84,17 @@ function useRouting(): void {
     }
   });
 
+  watch(isProviderWalletSendingCalls, (value) => {
+    if (!hasWalletAddress.value) {
+      return;
+    }
+    if (value) {
+      router.push({ name: 'wallet-send-calls' });
+    } else {
+      router.push({ name: 'home' });
+    }
+  });
+
   watch(
     hasWalletAddress,
     (value) => {
@@ -106,6 +120,10 @@ function useRouting(): void {
       }
       if (isProviderSigningTypedData.value) {
         router.push({ name: 'sign-typed-data' });
+        return;
+      }
+      if (isProviderWalletSendingCalls.value) {
+        router.push({ name: 'wallet-send-calls' });
         return;
       }
       router.push({ name: 'home' });

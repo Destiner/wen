@@ -6,15 +6,23 @@ import {
   Hex,
   http,
   SendTransactionErrorType,
+  toHex,
   TypedData,
   TypedDataDefinition,
   TypedDataDomain,
+  WalletCapabilitiesRecord,
   WalletPermission,
   zeroAddress,
 } from 'viem';
+import {
+  createBundlerClient,
+  entryPoint07Address,
+} from 'viem/account-abstraction';
 import { mnemonicToAccount } from 'viem/accounts';
 import { odysseyTestnet } from 'viem/chains';
 import { eip7702Actions } from 'viem/experimental';
+
+import { Execution, getOpHash, prepareOp, submitOp } from '@/utils/aa';
 
 import { Storage } from './storage';
 import {
@@ -45,6 +53,9 @@ import {
   ALLOW_SIGN_TYPED_DATA,
   DENY_SIGN_TYPED_DATA,
   SIGN_TYPED_DATA,
+  WALLET_SEND_CALLS,
+  ALLOW_WALLET_SEND_CALLS,
+  DENY_WALLET_SEND_CALLS,
 } from './types';
 
 interface MessageSender {
@@ -75,6 +86,20 @@ interface PermissionRequest {
   [methodName: string]: {
     [caveatName: string]: unknown;
   };
+}
+
+interface WalletCall {
+  to?: Address;
+  value?: Hex;
+  data: Hex;
+}
+
+interface WalletCallRequest {
+  version: string;
+  chainId: Hex;
+  from: Address;
+  calls: WalletCall[];
+  capabilities: WalletCapabilitiesRecord;
 }
 
 type Response<T> =
@@ -109,6 +134,9 @@ interface ProviderState {
 
   isSigningTypedData: boolean;
   typedDataRequest: TypedDataRequest | null;
+
+  isWalletSendingCalls: boolean;
+  walletCallRequest: WalletCallRequest | null;
 }
 
 interface WalletState {
@@ -136,6 +164,9 @@ const providerState: ProviderState = {
 
   isSigningTypedData: false,
   typedDataRequest: null,
+
+  isWalletSendingCalls: false,
+  walletCallRequest: null,
 };
 
 const walletState: WalletState = {
@@ -278,6 +309,60 @@ async function signTypedData(
     id,
     data: {
       typedDataRequest,
+    },
+  });
+}
+
+function getCapabilities(address: Address): WalletCapabilitiesRecord {
+  const addresses = getAddresses();
+  if (!addresses.includes(address)) {
+    return {};
+  }
+  return {
+    [toHex(odysseyTestnet.id)]: {
+      atomicBatch: {
+        supported: true,
+      },
+    },
+  };
+}
+
+async function walletSendCalls(
+  id: string | number,
+  sender: MessageSender,
+  walletCallRequest: WalletCallRequest,
+  callback: (value: Response<Hex>) => void,
+): Promise<void> {
+  const { version, chainId, from, calls, capabilities } = walletCallRequest;
+  if (version !== '1.0') {
+    throw new Error('Unsupported version');
+  }
+
+  if (chainId !== toHex(odysseyTestnet.id)) {
+    throw new Error('Unsupported chain');
+  }
+  const addresses = getAddresses();
+  if (!addresses.includes(from)) {
+    throw new Error('Account is not connected');
+  }
+  if (capabilities && capabilities[chainId]) {
+    if (capabilities[chainId].paymasterService) {
+      throw new Error('Unsupported capability: paymasterService');
+    }
+  }
+  if (calls.length === 0) {
+    throw new Error('Calls are empty');
+  }
+  callbacks[id] = callback;
+  providerState.isWalletSendingCalls = true;
+  providerState.walletCallRequest = walletCallRequest;
+  providerState.requestId = id;
+  providerState.requestSender = sender;
+  chrome.runtime.sendMessage<BackendRequestMessage>({
+    type: WALLET_SEND_CALLS,
+    id,
+    data: {
+      walletCallRequest,
     },
   });
 }
@@ -435,6 +520,32 @@ function denySignTypedData(id: string | number): void {
     callback({
       status: false,
       error: new Error('User denied typed data sign request'),
+    });
+  }
+}
+
+async function allowWalletSendCalls(id: string | number): Promise<void> {
+  providerState.isWalletSendingCalls = false;
+  if (!providerState.walletCallRequest) {
+    return;
+  }
+  const opHash = await sendWalletCalls(providerState.walletCallRequest);
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: true,
+      result: opHash,
+    });
+  }
+}
+
+function denyWalletSendCalls(id: string | number): void {
+  providerState.isWalletSendingCalls = false;
+  const callback = callbacks[id];
+  if (callback) {
+    callback({
+      status: false,
+      error: new Error('User denied wallet send calls request'),
     });
   }
 }
@@ -768,6 +879,10 @@ chrome.runtime.onMessage.addListener(
       allowSignTypedData(request.id);
     } else if (request.type === DENY_SIGN_TYPED_DATA) {
       denySignTypedData(request.id);
+    } else if (request.type === ALLOW_WALLET_SEND_CALLS) {
+      allowWalletSendCalls(request.id);
+    } else if (request.type === DENY_WALLET_SEND_CALLS) {
+      denyWalletSendCalls(request.id);
     } else if (request.type === PROVIDER_DELEGATE) {
       const delegatee = request.data.delegatee;
       const data = request.data.data;
@@ -880,6 +995,44 @@ async function getTypedDataSignature(
   return await account.signTypedData(typedDataRequest);
 }
 
+async function sendWalletCalls({
+  from,
+  calls,
+}: WalletCallRequest): Promise<Hex | null> {
+  if (!walletState.mnemonic) {
+    return null;
+  }
+  const executions: Execution[] = (calls as WalletCall[]).map((call) => {
+    if (!call.to) {
+      throw new Error('Create transactions are not supported');
+    }
+    return {
+      target: call.to,
+      value: BigInt(call.value || '0x0'),
+      callData: call.data,
+    };
+  });
+  const op = await prepareOp(from, null, executions, 0n);
+  const opHash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
+  if (!opHash) {
+    return null;
+  }
+  const signature = await getPersonalSignature(opHash);
+  if (!signature) {
+    return null;
+  }
+  op.signature = signature;
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
+  });
+  await submitOp(from, bundlerClient, op);
+  return opHash;
+}
+
 export {
   getChainId,
   getAccounts,
@@ -890,6 +1043,8 @@ export {
   requestPermissions,
   revokePermissions,
   signTypedData,
+  getCapabilities,
+  walletSendCalls,
 };
 export type {
   ProviderState,
@@ -897,4 +1052,5 @@ export type {
   SendTransactionRequest,
   PermissionRequest,
   TypedDataRequest,
+  WalletCallRequest,
 };
