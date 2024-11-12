@@ -510,7 +510,7 @@ async function delegate(
   }).extend(eip7702Actions());
   const authorization = await walletClient.signAuthorization({
     contractAddress: delegatee,
-    nonce,
+    nonce: isSponsored ? nonce : undefined,
   });
 
   if (authorization.yParity === undefined) {
@@ -626,7 +626,7 @@ async function undelegate(isSponsored: boolean): Promise<void> {
 
   const authorization = await walletClient.signAuthorization({
     contractAddress: zeroAddress,
-    nonce,
+    nonce: isSponsored ? nonce : undefined,
   });
 
   if (authorization.yParity === undefined) {
