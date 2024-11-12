@@ -104,6 +104,7 @@ import {
   getDisableSmartSessionModuleExecution,
   getEnableSmartSessionModuleExecution,
   getOpHash,
+  getOpTxHash,
   prepareOp,
   submitOp,
 } from '@/utils/aa';
@@ -121,6 +122,10 @@ const wallet = useWallet();
 const { personalSign } = useProvider();
 
 const walletAddress = computed(() => wallet.address.value);
+const publicClient = createPublicClient({
+  chain: odysseyTestnet,
+  transport: http(),
+});
 
 const balance = ref<bigint | null>(null);
 const delegation = ref<Address | null>(null);
@@ -142,11 +147,7 @@ async function fetchBalance(): Promise<void> {
   if (!walletAddress.value) {
     return;
   }
-  const client = createPublicClient({
-    chain: odysseyTestnet,
-    transport: http(),
-  });
-  const accountBalance = await getBalance(client, {
+  const accountBalance = await getBalance(publicClient, {
     address: walletAddress.value,
   });
   balance.value = accountBalance;
@@ -155,11 +156,7 @@ async function fetchDelegation(): Promise<void> {
   if (!walletAddress.value) {
     return;
   }
-  const client = createPublicClient({
-    chain: odysseyTestnet,
-    transport: http(),
-  });
-  const code = await getCode(client, {
+  const code = await getCode(publicClient, {
     address: walletAddress.value,
   });
   delegation.value =
@@ -178,11 +175,7 @@ async function fetchAreSessionKeysEnabled(): Promise<void> {
   if (delegation.value !== KERNEL_V3_IMPLEMENTATION_ADDRESS) {
     return;
   }
-  const client = createPublicClient({
-    chain: odysseyTestnet,
-    transport: http(),
-  });
-  const isInstalled = await readContract(client, {
+  const isInstalled = await readContract(publicClient, {
     address: walletAddress.value,
     abi: kernelV3ImplementationAbi,
     functionName: 'isModuleInstalled',
@@ -259,23 +252,23 @@ async function enableSessionKeyModule(): Promise<void> {
   if (!opHash) {
     return;
   }
-  personalSign(opHash, async (signature) => {
-    if (!walletAddress.value) {
-      return;
-    }
-    if (!signature) {
-      return;
-    }
-    op.signature = signature;
-    // Submit op like a bundler
-    const bundlerClient = createBundlerClient({
-      client: createPublicClient({
-        chain: odysseyTestnet,
-        transport: http(),
-      }),
-      transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
-    });
-    await submitOp(walletAddress.value, bundlerClient, op);
+  const signature = await personalSign(opHash);
+  if (!signature) {
+    return;
+  }
+  op.signature = signature;
+  // Submit op like a bundler
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
+  });
+  await submitOp(walletAddress.value, bundlerClient, op);
+  await getOpTxHash(bundlerClient, opHash);
+  balance.value = await getBalance(publicClient, {
+    address: walletAddress.value,
   });
 }
 
@@ -296,23 +289,24 @@ async function disableSessionKeyModule(): Promise<void> {
   if (!opHash) {
     return;
   }
-  personalSign(opHash, async (signature) => {
-    if (!walletAddress.value) {
-      return;
-    }
-    if (!signature) {
-      return;
-    }
-    op.signature = signature;
-    // Submit op like a bundler
-    const bundlerClient = createBundlerClient({
-      client: createPublicClient({
-        chain: odysseyTestnet,
-        transport: http(),
-      }),
-      transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
-    });
-    await submitOp(walletAddress.value, bundlerClient, op);
+
+  const signature = await personalSign(opHash);
+  if (!signature) {
+    return;
+  }
+  op.signature = signature;
+  // Submit op like a bundler
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
+  });
+  await submitOp(walletAddress.value, bundlerClient, op);
+  await getOpTxHash(bundlerClient, opHash);
+  balance.value = await getBalance(publicClient, {
+    address: walletAddress.value,
   });
 }
 </script>

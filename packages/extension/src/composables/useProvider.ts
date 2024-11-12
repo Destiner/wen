@@ -36,6 +36,7 @@ import {
   SIGN_TYPED_DATA,
 } from '@/background/types';
 import useProviderStore from '@/stores/provider';
+import { promisify } from '@/utils';
 
 import { useToast } from './useToast';
 
@@ -56,16 +57,12 @@ interface UseProvider {
   allowSendTransaction: () => void;
   denySendTransaction: () => void;
 
-  delegate: (
-    delegatee: Address,
-    data: Hex,
-    isSponsored: boolean,
-    cb: (txHash: Hex | null) => void,
-  ) => Promise<void>;
-  undelegate: (
-    isSponsored: boolean,
-    cb: (txHash: Hex | null) => void,
-  ) => Promise<void>;
+  delegate: (args: {
+    delegatee: Address;
+    data: Hex;
+    isSponsored: boolean;
+  }) => Promise<Hex | null>;
+  undelegate: (isSponsored: boolean) => Promise<Hex | null>;
 
   isRequestingPermissions: Ref<boolean>;
   permissionRequest: Ref<PermissionRequest | null>;
@@ -77,10 +74,7 @@ interface UseProvider {
   allowSignTypedData: () => void;
   denySignTypedData: () => void;
 
-  personalSign: (
-    message: Hex,
-    cb: (signature: Hex | null) => void,
-  ) => Promise<void>;
+  personalSign: (message: Hex) => Promise<Hex | null>;
 }
 
 function useProvider(): UseProvider {
@@ -182,19 +176,17 @@ function useProvider(): UseProvider {
 
   const delegationTxHash = computed<Hex | null>(() => store.delegationTxHash);
   async function delegate(
-    delegatee: Address,
-    data: Hex,
-    isSponsored: boolean,
+    args: {
+      delegatee: Address;
+      data: Hex;
+      isSponsored: boolean;
+    },
     cb: (txHash: Hex | null) => void,
   ): Promise<void> {
     chrome.runtime.sendMessage<FrontendRequestMessage>({
       id: Math.random(),
       type: PROVIDER_DELEGATE,
-      data: {
-        delegatee,
-        data,
-        isSponsored,
-      },
+      data: args,
     });
     delegationCallback.value = cb;
   }
@@ -439,8 +431,8 @@ function useProvider(): UseProvider {
     allowSendTransaction,
     denySendTransaction,
 
-    delegate,
-    undelegate,
+    delegate: promisify(delegate),
+    undelegate: promisify(undelegate),
 
     isRequestingPermissions,
     permissionRequest,
@@ -452,7 +444,7 @@ function useProvider(): UseProvider {
     allowSignTypedData,
     denySignTypedData,
 
-    personalSign,
+    personalSign: promisify(personalSign),
   };
 }
 

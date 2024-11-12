@@ -311,27 +311,24 @@ async function delegate(): Promise<void> {
     ? (initializationData.value as Hex)
     : '0x';
   isDelegating.value = true;
-  await providerDelegate(
-    delegateeAddress.value as Address,
+  const txHash = await providerDelegate({
+    delegatee: delegateeAddress.value as Address,
     data,
-    isSequencerSponsorshipEnabled.value,
-    (txHash) => {
-      isDelegating.value = false;
-      if (txHash) {
-        openHomePage();
-      }
-    },
-  );
+    isSponsored: isSequencerSponsorshipEnabled.value,
+  });
+  isDelegating.value = false;
+  if (txHash) {
+    openHomePage();
+  }
 }
 const isUndelegating = ref(false);
 async function removeDelegation(): Promise<void> {
   isUndelegating.value = true;
-  await providerUndelegate(isSequencerSponsorshipEnabled.value, (txHash) => {
-    isUndelegating.value = false;
-    if (txHash) {
-      openHomePage();
-    }
-  });
+  const txHash = await providerUndelegate(isSequencerSponsorshipEnabled.value);
+  isUndelegating.value = false;
+  if (txHash) {
+    openHomePage();
+  }
 }
 
 function openHomePage(): void {
