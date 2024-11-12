@@ -1,5 +1,7 @@
 # Playground
 
+Link: https://wen-playground.vercel.app
+
 ## Installation
 
 ```bash
