@@ -1,138 +1,167 @@
 <template>
   <div class="page">
     <div class="content">
-      <div class="account">
-        <template v-if="!isConnected">
-          <div>Connect a wallet to get started</div>
-          <div>
-            <PlayButton
-              type="primary"
-              @click="openConnectorDialog"
+      <div class="card">
+        <div class="row">
+          <div class="side">
+            <a
+              href="https://github.com/Destiner/wen"
+              class="link"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              Connect
-            </PlayButton>
+              wen wallet ↗
+            </a>
+            playground
           </div>
-        </template>
-        <template v-else>
-          <div>
-            <PlayButton
-              type="secondary"
-              @click="handleDisconnectClick"
+          <div class="side">
+            <a
+              href="https://github.com/Destiner/wen/tree/main/examples/playground"
+              class="link"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              Disconnect
-            </PlayButton>
-          </div>
-          <div class="data-row">
-            <div class="label">Account</div>
-            <div class="value">{{ accountAddress }}</div>
-          </div>
-
-          <div
-            class="data-row"
-            :class="{ invalid: !isValidDelegatee }"
-          >
-            <div class="label">Delegatee</div>
-            <div class="value">
-              <template v-if="isValidDelegatee">
-                {{ delegateeAddress }}
-              </template>
-              <template v-else-if="delegateeAddress">
-                {{ delegateeAddress }} (not supported, please delegate to Kernel
-                V3)
-              </template>
-              <template v-else> Not delegating </template>
-            </div>
-          </div>
-
-          <div
-            v-if="isValidDelegatee"
-            class="data-row"
-            :class="{ invalid: !isInitialized }"
-          >
-            <div class="label">Is initialized?</div>
-            <div class="value">
-              <template v-if="isInitialized">Yes</template>
-              <template v-else>
-                No: please initialize the account first
-              </template>
-            </div>
-          </div>
-
-          <div
-            v-if="isInitialized"
-            class="data-row"
-            :class="{ invalid: !hasValidRootValidator }"
-          >
-            <div class="label">Has valid root validator?</div>
-            <div class="value">
-              <template v-if="hasValidRootValidator">Yes</template>
-              <template v-else> No: please use multi-chain validator </template>
-            </div>
-          </div>
-
-          <div
-            v-if="hasValidRootValidator"
-            class="data-row"
-            :class="{ invalid: !isValidOwner }"
-          >
-            <div class="label">Is valid owner?</div>
-            <div class="value">
-              <template v-if="isValidOwner">Yes</template>
-              <template v-else> No: please make your EOA an owner </template>
-            </div>
-          </div>
-        </template>
-      </div>
-      <div class="actions">
-        <div class="action">
-          <div>
-            <PlayButton
-              type="secondary"
-              :disabled="!isValidOwner || isPending"
-              @click="handleSendTransactionClick"
-            >
-              Send transaction
-            </PlayButton>
-          </div>
-          <div>
-            <div
-              v-if="txHash"
-              class="action-result"
-            >
-              Sent
-              <a
-                :href="getBlockExplorerTxUrl(txHash)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <IconArrowTopRight class="icon" />
-              </a>
-            </div>
+              source ↗
+            </a>
           </div>
         </div>
-        <div class="action">
-          <div>
-            <PlayButton
-              type="secondary"
-              :disabled="!isValidOwner || isPending"
-              @click="handleSendUserOpClick"
-            >
-              Send user operation
-            </PlayButton>
-          </div>
-          <div>
-            <div
-              v-if="opTxHash"
-              class="action-result"
-            >
-              Sent
-              <a
-                :href="getBlockExplorerTxUrl(opTxHash)"
-                target="_blank"
-                rel="noopener noreferrer"
+      </div>
+      <div class="card">
+        <div class="account">
+          <template v-if="!isConnected">
+            <div>Connect a wallet to get started</div>
+            <div>
+              <PlayButton
+                type="primary"
+                @click="openConnectorDialog"
               >
-                <IconArrowTopRight class="icon" />
-              </a>
+                Connect
+              </PlayButton>
+            </div>
+          </template>
+          <template v-else>
+            <div>
+              <PlayButton
+                type="secondary"
+                @click="handleDisconnectClick"
+              >
+                Disconnect
+              </PlayButton>
+            </div>
+            <div class="data-row">
+              <div class="label">Account</div>
+              <div class="value">{{ accountAddress }}</div>
+            </div>
+
+            <div
+              class="data-row"
+              :class="{ invalid: !isValidDelegatee }"
+            >
+              <div class="label">Delegatee</div>
+              <div class="value">
+                <template v-if="isValidDelegatee">
+                  {{ delegateeAddress }}
+                </template>
+                <template v-else-if="delegateeAddress">
+                  {{ delegateeAddress }} (not supported, please delegate to
+                  Kernel V3)
+                </template>
+                <template v-else> Not delegating </template>
+              </div>
+            </div>
+
+            <div
+              v-if="isValidDelegatee"
+              class="data-row"
+              :class="{ invalid: !isInitialized }"
+            >
+              <div class="label">Is initialized?</div>
+              <div class="value">
+                <template v-if="isInitialized">Yes</template>
+                <template v-else>
+                  No: please initialize the account first
+                </template>
+              </div>
+            </div>
+
+            <div
+              v-if="isInitialized"
+              class="data-row"
+              :class="{ invalid: !hasValidRootValidator }"
+            >
+              <div class="label">Has valid root validator?</div>
+              <div class="value">
+                <template v-if="hasValidRootValidator">Yes</template>
+                <template v-else>
+                  No: please use multi-chain validator
+                </template>
+              </div>
+            </div>
+
+            <div
+              v-if="hasValidRootValidator"
+              class="data-row"
+              :class="{ invalid: !isValidOwner }"
+            >
+              <div class="label">Is valid owner?</div>
+              <div class="value">
+                <template v-if="isValidOwner">Yes</template>
+                <template v-else> No: please make your EOA an owner </template>
+              </div>
+            </div>
+          </template>
+        </div>
+        <div class="actions">
+          <div class="action">
+            <div>
+              <PlayButton
+                type="secondary"
+                :disabled="!isValidOwner || isPending"
+                @click="handleSendTransactionClick"
+              >
+                Send transaction
+              </PlayButton>
+            </div>
+            <div>
+              <div
+                v-if="txHash"
+                class="action-result"
+              >
+                Sent
+                <a
+                  :href="getBlockExplorerTxUrl(txHash)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <IconArrowTopRight class="icon" />
+                </a>
+              </div>
+            </div>
+          </div>
+          <div class="action">
+            <div>
+              <PlayButton
+                type="secondary"
+                :disabled="!isValidOwner || isPending"
+                @click="handleSendUserOpClick"
+              >
+                Send user operation
+              </PlayButton>
+            </div>
+            <div>
+              <div
+                v-if="opTxHash"
+                class="action-result"
+              >
+                Sent
+                <a
+                  :href="getBlockExplorerTxUrl(opTxHash)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <IconArrowTopRight class="icon" />
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -405,11 +434,37 @@ function getBlockExplorerTxUrl(hash: Hex): string {
   flex-direction: column;
   width: 640px;
   max-width: 100%;
+  gap: 8px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
   padding: 8px;
   border: 1px solid #dadbd2;
   border-radius: 6px;
   background: #fff;
   gap: 24px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.side {
+  display: flex;
+  gap: 6px;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  justify-content: center;
+  color: #eb2ab1;
+  text-decoration: none;
 }
 
 .account {

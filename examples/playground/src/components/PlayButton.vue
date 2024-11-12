@@ -40,12 +40,12 @@ button {
   }
 
   &.primary {
-    --chrome: #eb9d2a;
-    --border-top: #b17716;
-    --border-bottom: #b17716;
+    --chrome: #eb2ab1;
+    --border-top: #b1169a;
+    --border-bottom: #b1169a;
 
     &:hover {
-      --border-top: #8e5b03;
+      --border-top: #8e0372;
     }
   }
 
