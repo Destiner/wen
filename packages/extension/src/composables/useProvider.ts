@@ -4,11 +4,12 @@ import { computed, onMounted, Ref, ref } from 'vue';
 
 import {
   MessageSender,
-  PermissionRequest,
+  PermissionRequestData,
+  ProviderRequest,
   ProviderState,
-  SendTransactionRequest,
-  TypedDataRequest,
-  WalletCallRequest,
+  SendTransactionRequestData,
+  TypedDataRequestData,
+  WalletCallRequestData,
 } from '@/background/provider';
 import {
   BackendRequestMessage,
@@ -22,24 +23,29 @@ import {
   DENY_REQUEST_PERMISSIONS,
   DENY_SEND_TRANSACTION,
   GET_PROVIDER_STATE,
-  PERSONAL_SIGN,
+  // PERSONAL_SIGN,
   PROVIDER_DELEGATE_RESULT,
   PROVIDER_DELEGATE,
   PROVIDER_PERSONAL_SIGN_RESULT,
   PROVIDER_PERSONAL_SIGN,
   PROVIDER_UNDELEGATE_RESULT,
   PROVIDER_UNDELEGATE,
-  REQUEST_ACCOUNTS,
-  REQUEST_PERMISSIONS,
-  SEND_TRANSACTION,
+  // REQUEST_ACCOUNTS,
+  // REQUEST_PERMISSIONS,
+  // SEND_TRANSACTION,
   ALLOW_SIGN_TYPED_DATA,
   DENY_SIGN_TYPED_DATA,
-  SIGN_TYPED_DATA,
-  WALLET_SEND_CALLS,
+  // SIGN_TYPED_DATA,
+  // WALLET_SEND_CALLS,
   ALLOW_WALLET_SEND_CALLS,
   DENY_WALLET_SEND_CALLS,
-  SHOW_CALLS_STATUS,
+  // SHOW_CALLS_STATUS,
   HIDE_CALLS_STATUS,
+  REQUEST_ACCOUNTS,
+  PERSONAL_SIGN,
+  SEND_TRANSACTION,
+  WALLET_SEND_CALLS,
+  SHOW_CALLS_STATUS,
 } from '@/background/types';
 import useProviderStore from '@/stores/provider';
 import { promisify } from '@/utils';
@@ -59,46 +65,47 @@ interface UseProvider {
   denyPersonalSign: () => void;
 
   isSendingTransaction: Ref<boolean>;
-  transaction: Ref<SendTransactionRequest | null>;
+  transaction: Ref<SendTransactionRequestData | null>;
   allowSendTransaction: () => void;
   denySendTransaction: () => void;
 
-  delegate: (args: {
-    delegatee: Address;
-    data: Hex;
-    isSponsored: boolean;
-  }) => Promise<Hex | null>;
-  undelegate: (isSponsored: boolean) => Promise<Hex | null>;
-
   isRequestingPermissions: Ref<boolean>;
-  permissionRequest: Ref<PermissionRequest | null>;
+  permissionRequest: Ref<PermissionRequestData | null>;
   allowRequestPermissions: () => void;
   denyRequestPermissions: () => void;
 
   isSigningTypedData: Ref<boolean>;
-  typedDataRequest: Ref<TypedDataRequest | null>;
+  typedDataRequest: Ref<TypedDataRequestData | null>;
   allowSignTypedData: () => void;
   denySignTypedData: () => void;
 
-  personalSign: (message: Hex) => Promise<Hex | null>;
-
   isWalletSendingCalls: Ref<boolean>;
-  walletCallRequest: Ref<WalletCallRequest | null>;
+  walletCallRequest: Ref<WalletCallRequestData | null>;
   allowWalletSendCalls: () => void;
   denyWalletSendCalls: () => void;
 
   isShowingCallsStatus: Ref<boolean>;
   walletCallsStatus: Ref<WalletGetCallsStatusReturnType | null>;
   hideCallsStatus: () => void;
+
+  personalSign: (message: Hex) => Promise<Hex | null>;
+  delegate: (args: {
+    delegatee: Address;
+    data: Hex;
+    isSponsored: boolean;
+  }) => Promise<Hex | null>;
+  undelegate: (isSponsored: boolean) => Promise<Hex | null>;
 }
 
 function useProvider(): UseProvider {
   const store = useProviderStore();
   const { send } = useToast();
 
-  const requestId = computed<string | number | null>(() => store.requestId);
-  const requestSender = computed<MessageSender | null>(
-    () => store.requestSender,
+  const activeRequest = computed<ProviderRequest | null>(
+    () => store.activeRequest,
+  );
+  const requestSender = computed<MessageSender | null>(() =>
+    activeRequest.value ? activeRequest.value.sender : null,
   );
 
   const delegationCallback = ref<((txHash: Hex | null) => void) | null>(null);
@@ -107,87 +114,256 @@ function useProvider(): UseProvider {
     ((signature: Hex | null) => void) | null
   >(null);
 
-  const isRequestingAccounts = computed<boolean>(
-    () => store.isRequestingAccounts,
+  const isRequestingAccounts = computed<boolean>(() =>
+    store.activeRequest ? store.activeRequest.type === 'account' : false,
   );
   function allowAccountRequest(): void {
-    if (!requestId.value) {
+    const requestId = getRequestId();
+    if (!requestId) {
       return;
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
+      id: requestId,
       type: ALLOW_ACCOUNT_REQUEST,
       data: undefined,
     });
-    store.setIsRequestingAccounts(false);
+    store.setActiveRequest(null);
   }
   function denyAccountRequest(): void {
-    if (!requestId.value) {
+    const requestId = getRequestId();
+    if (!requestId) {
       return;
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
+      id: requestId,
       type: DENY_ACCOUNT_REQUEST,
       data: undefined,
     });
-    store.setIsRequestingAccounts(false);
+    store.setActiveRequest(null);
   }
 
-  const isPersonalSigning = computed<boolean>(() => store.isPersonalSigning);
-  const personalSignedMessage = computed<Hex | null>(
-    () => store.personalSignedMessage,
+  const isPersonalSigning = computed<boolean>(() =>
+    store.activeRequest ? store.activeRequest.type === 'personal_sign' : false,
+  );
+  const personalSignedMessage = computed<Hex | null>(() =>
+    store.activeRequest && store.activeRequest.type === 'personal_sign'
+      ? store.activeRequest.message
+      : null,
   );
   function allowPersonalSign(): void {
-    if (!requestId.value) {
+    const requestId = getRequestId();
+    if (!requestId) {
       return;
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
+      id: requestId,
       type: ALLOW_PERSONAL_SIGN,
       data: undefined,
     });
-    store.setIsPersonalSigning(false);
+    store.setActiveRequest(null);
   }
   function denyPersonalSign(): void {
-    if (!requestId.value) {
+    const requestId = getRequestId();
+    if (!requestId) {
       return;
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
+      id: requestId,
       type: DENY_PERSONAL_SIGN,
       data: undefined,
     });
-    store.setIsPersonalSigning(false);
+    store.setActiveRequest(null);
   }
 
-  const isSendingTransaction = computed<boolean>(
-    () => store.isSendingTransaction,
+  const isSendingTransaction = computed<boolean>(() =>
+    store.activeRequest
+      ? store.activeRequest.type === 'send_transaction'
+      : false,
   );
-  const transaction = computed<SendTransactionRequest | null>(
-    () => store.transaction,
+  const transaction = computed<SendTransactionRequestData | null>(() =>
+    store.activeRequest && store.activeRequest.type === 'send_transaction'
+      ? store.activeRequest.transaction
+      : null,
   );
   function allowSendTransaction(): void {
-    if (!requestId.value) {
+    const requestId = getRequestId();
+    if (!requestId) {
       return;
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
+      id: requestId,
       type: ALLOW_SEND_TRANSACTION,
       data: undefined,
     });
-    store.setIsSendingTransaction(false);
+    store.setActiveRequest(null);
   }
   function denySendTransaction(): void {
-    if (!requestId.value) {
+    const requestId = getRequestId();
+    if (!requestId) {
       return;
     }
     chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
+      id: requestId,
       type: DENY_SEND_TRANSACTION,
       data: undefined,
     });
-    store.setIsSendingTransaction(false);
+    store.setActiveRequest(null);
   }
+
+  const isRequestingPermissions = computed<boolean>(() =>
+    store.activeRequest
+      ? store.activeRequest.type === 'request_permissions'
+      : false,
+  );
+  const permissionRequest = computed<PermissionRequestData | null>(() =>
+    store.activeRequest && store.activeRequest.type === 'request_permissions'
+      ? store.activeRequest.permissionRequest
+      : null,
+  );
+  function allowRequestPermissions(): void {
+    const requestId = getRequestId();
+    if (!requestId) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId,
+      type: ALLOW_REQUEST_PERMISSIONS,
+      data: undefined,
+    });
+    store.setActiveRequest(null);
+  }
+  function denyRequestPermissions(): void {
+    const requestId = getRequestId();
+    if (!requestId) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId,
+      type: DENY_REQUEST_PERMISSIONS,
+      data: undefined,
+    });
+    store.setActiveRequest(null);
+  }
+
+  const isSigningTypedData = computed<boolean>(() =>
+    store.activeRequest
+      ? store.activeRequest.type === 'sign_typed_data'
+      : false,
+  );
+  const typedDataRequest = computed<TypedDataRequestData | null>(() =>
+    store.activeRequest && store.activeRequest.type === 'sign_typed_data'
+      ? store.activeRequest.typedDataRequest
+      : null,
+  );
+  function allowSignTypedData(): void {
+    const requestId = getRequestId();
+    if (!requestId) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId,
+      type: ALLOW_SIGN_TYPED_DATA,
+      data: undefined,
+    });
+    store.setActiveRequest(null);
+  }
+  function denySignTypedData(): void {
+    const requestId = getRequestId();
+    if (!requestId) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId,
+      type: DENY_SIGN_TYPED_DATA,
+      data: undefined,
+    });
+    store.setActiveRequest(null);
+  }
+
+  const isWalletSendingCalls = computed<boolean>(() =>
+    store.activeRequest
+      ? store.activeRequest.type === 'wallet_send_calls'
+      : false,
+  );
+  const walletCallRequest = computed<WalletCallRequestData | null>(() =>
+    store.activeRequest && store.activeRequest.type === 'wallet_send_calls'
+      ? store.activeRequest.walletCallRequest
+      : null,
+  );
+  function allowWalletSendCalls(): void {
+    const requestId = getRequestId();
+    if (!requestId) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId,
+      type: ALLOW_WALLET_SEND_CALLS,
+      data: undefined,
+    });
+    store.setActiveRequest(null);
+  }
+  function denyWalletSendCalls(): void {
+    const requestId = getRequestId();
+    if (!requestId) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId,
+      type: DENY_WALLET_SEND_CALLS,
+      data: undefined,
+    });
+    store.setActiveRequest(null);
+  }
+
+  const isShowingCallsStatus = computed<boolean>(() =>
+    store.activeRequest
+      ? store.activeRequest.type === 'show_calls_status'
+      : false,
+  );
+  const walletCallsStatus = computed<WalletGetCallsStatusReturnType | null>(
+    () =>
+      store.activeRequest && store.activeRequest.type === 'show_calls_status'
+        ? store.activeRequest.walletCallStatus
+        : null,
+  );
+  function hideCallsStatus(): void {
+    const requestId = getRequestId();
+    if (!requestId) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId,
+      type: HIDE_CALLS_STATUS,
+      data: undefined,
+    });
+    store.setActiveRequest(null);
+  }
+
+  const personalSignSignature = computed<Hex | null>(
+    () => store.personalSignSignature,
+  );
+  async function personalSign(
+    message: Hex,
+    cb: (signature: Hex | null) => void,
+  ): Promise<void> {
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: Math.random(),
+      type: PROVIDER_PERSONAL_SIGN,
+      data: {
+        message,
+      },
+    });
+    providerPersonalSignCallback.value = cb;
+  }
+  whenever(personalSignSignature, (signature) => {
+    if (signature) {
+      if (providerPersonalSignCallback.value) {
+        providerPersonalSignCallback.value(signature);
+        providerPersonalSignCallback.value = null;
+        store.setActiveRequest(null);
+      }
+    }
+  });
 
   const delegationTxHash = computed<Hex | null>(() => store.delegationTxHash);
   async function delegate(
@@ -241,144 +417,15 @@ function useProvider(): UseProvider {
     }
   });
 
-  const providerPersonalSignSignature = computed<Hex | null>(
-    () => store.providerPersonalSignSignature,
-  );
-  async function personalSign(
-    message: Hex,
-    cb: (signature: Hex | null) => void,
-  ): Promise<void> {
-    chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: Math.random(),
-      type: PROVIDER_PERSONAL_SIGN,
-      data: {
-        message,
-      },
-    });
-    providerPersonalSignCallback.value = cb;
-  }
-  whenever(providerPersonalSignSignature, (signature) => {
-    if (signature) {
-      if (providerPersonalSignCallback.value) {
-        providerPersonalSignCallback.value(signature);
-        providerPersonalSignCallback.value = null;
-        store.setProviderPersonalSignSignature(null);
-      }
-    }
-  });
-
-  const isRequestingPermissions = computed<boolean>(
-    () => store.isRequestingPermissions,
-  );
-  const permissionRequest = computed<PermissionRequest | null>(
-    () => store.permissionRequest,
-  );
-  function allowRequestPermissions(): void {
-    if (!requestId.value) {
-      return;
-    }
-    chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
-      type: ALLOW_REQUEST_PERMISSIONS,
-      data: undefined,
-    });
-    store.setIsRequestingPermissions(false);
-  }
-  function denyRequestPermissions(): void {
-    if (!requestId.value) {
-      return;
-    }
-    chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
-      type: DENY_REQUEST_PERMISSIONS,
-      data: undefined,
-    });
-    store.setIsRequestingPermissions(false);
-  }
-
-  const isSigningTypedData = computed<boolean>(() => store.isSigningTypedData);
-  const typedDataRequest = computed<TypedDataRequest | null>(
-    () => store.typedDataRequest,
-  );
-  function allowSignTypedData(): void {
-    if (!requestId.value) {
-      return;
-    }
-    chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
-      type: ALLOW_SIGN_TYPED_DATA,
-      data: undefined,
-    });
-    store.setIsSigningTypedData(false);
-  }
-  function denySignTypedData(): void {
-    if (!requestId.value) {
-      return;
-    }
-    chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
-      type: DENY_SIGN_TYPED_DATA,
-      data: undefined,
-    });
-    store.setIsSigningTypedData(false);
-  }
-
-  const isWalletSendingCalls = computed<boolean>(
-    () => store.isWalletSendingCalls,
-  );
-  const walletCallRequest = computed<WalletCallRequest | null>(
-    () => store.walletCallRequest,
-  );
-  function allowWalletSendCalls(): void {
-    if (!requestId.value) {
-      return;
-    }
-    chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
-      type: ALLOW_WALLET_SEND_CALLS,
-      data: undefined,
-    });
-    store.setIsWalletSendingCalls(false);
-  }
-  function denyWalletSendCalls(): void {
-    if (!requestId.value) {
-      return;
-    }
-    chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
-      type: DENY_WALLET_SEND_CALLS,
-      data: undefined,
-    });
-    store.setIsWalletSendingCalls(false);
-  }
-
-  const isShowingCallsStatus = computed<boolean>(
-    () => store.isShowingCallsStatus,
-  );
-  const walletCallsStatus = computed<WalletGetCallsStatusReturnType | null>(
-    () => store.walletCallsStatus,
-  );
-  function hideCallsStatus(): void {
-    if (!requestId.value) {
-      return;
-    }
-    chrome.runtime.sendMessage<FrontendRequestMessage>({
-      id: requestId.value,
-      type: HIDE_CALLS_STATUS,
-      data: undefined,
-    });
-    store.setIsShowingCallsStatus(false);
-  }
-
   onMounted(async () => {
     document.addEventListener('DOMContentLoaded', () => {
       chrome.runtime.onMessage.addListener((message: BackendRequestMessage) => {
         if (message.type === REQUEST_ACCOUNTS) {
-          if (!message.id) {
-            return;
-          }
-          store.setIsRequestingAccounts(true);
-          store.setRequestId(message.id);
+          store.setActiveRequest({
+            id: message.id,
+            sender: message.sender,
+            type: 'account',
+          });
         }
         if (!message.data) {
           return;
@@ -387,17 +434,45 @@ function useProvider(): UseProvider {
           if (!message.id) {
             return;
           }
-          store.setIsPersonalSigning(true);
-          store.setPersonalSignedMessage(message.data.message);
-          store.setRequestId(message.id);
+          store.setActiveRequest({
+            id: message.id,
+            sender: message.sender,
+            type: 'personal_sign',
+            message: message.data.message,
+          });
         }
         if (message.type === SEND_TRANSACTION) {
           if (!message.id) {
             return;
           }
-          store.setIsSendingTransaction(true);
-          store.setTransaction(message.data.transaction);
-          store.setRequestId(message.id);
+          store.setActiveRequest({
+            id: message.id,
+            sender: message.sender,
+            type: 'send_transaction',
+            transaction: message.data.transaction,
+          });
+        }
+        if (message.type === WALLET_SEND_CALLS) {
+          if (!message.id) {
+            return;
+          }
+          store.setActiveRequest({
+            id: message.id,
+            sender: message.sender,
+            type: 'wallet_send_calls',
+            walletCallRequest: message.data.walletCallRequest,
+          });
+        }
+        if (message.type === SHOW_CALLS_STATUS) {
+          if (!message.id) {
+            return;
+          }
+          store.setActiveRequest({
+            id: message.id,
+            sender: message.sender,
+            type: 'show_calls_status',
+            walletCallStatus: message.data.callsStatus,
+          });
         }
         if (message.type === PROVIDER_DELEGATE_RESULT) {
           if (message.error) {
@@ -413,7 +488,7 @@ function useProvider(): UseProvider {
             });
             store.setDelegationTxHash('0x');
           } else {
-            store.setDelegationTxHash(message.data.txHash);
+            store.setDelegationTxHash(message.data?.txHash || null);
           }
         }
         if (message.type === PROVIDER_UNDELEGATE_RESULT) {
@@ -434,39 +509,11 @@ function useProvider(): UseProvider {
             }
             store.setUndelegationTxHash('0x');
           } else {
-            store.setUndelegationTxHash(message.data.txHash);
+            store.setUndelegationTxHash(message.data?.txHash || null);
           }
-        }
-        if (message.type === REQUEST_PERMISSIONS) {
-          if (!message.id) {
-            return;
-          }
-          store.setIsRequestingPermissions(true);
-          store.setPermissionRequest(message.data.permissionRequest);
-          store.setRequestId(message.id);
-        }
-        if (message.type === SIGN_TYPED_DATA) {
-          if (!message.id) {
-            return;
-          }
-          store.setIsPersonalSigning(true);
-          store.setTypedDataRequest(message.data.typedDataRequest);
-          store.setRequestId(message.id);
         }
         if (message.type === PROVIDER_PERSONAL_SIGN_RESULT) {
-          store.setProviderPersonalSignSignature(message.data.signature);
-        }
-        if (message.type === WALLET_SEND_CALLS) {
-          if (!message.id) {
-            return;
-          }
-          store.setIsWalletSendingCalls(true);
-          store.setWalletCallRequest(message.data.walletCallRequest);
-          store.setRequestId(message.id);
-        }
-        if (message.type === SHOW_CALLS_STATUS) {
-          store.setIsShowingCallsStatus(true);
-          store.setWalletCallsStatus(message.data.callsStatus);
+          store.setPersonalSignSignature(message.data?.signature || null);
         }
       });
     });
@@ -475,22 +522,15 @@ function useProvider(): UseProvider {
       type: GET_PROVIDER_STATE,
       data: undefined,
     })) as ProviderState;
-    store.setRequestId(response.requestId);
-    store.setRequestSender(response.requestSender);
-    store.setIsRequestingAccounts(response.isRequestingAccounts);
-    store.setIsPersonalSigning(response.isPersonalSigning);
-    store.setPersonalSignedMessage(response.personalSignedMessage);
-    store.setIsSendingTransaction(response.isSendingTransaction);
-    store.setTransaction(response.transaction);
-    store.setIsRequestingPermissions(response.isRequestingPermissions);
-    store.setPermissionRequest(response.permissionRequest);
-    store.setIsSigningTypedData(response.isSigningTypedData);
-    store.setTypedDataRequest(response.typedDataRequest);
-    store.setIsWalletSendingCalls(response.isWalletSendingCalls);
-    store.setWalletCallRequest(response.walletCallRequest);
-    store.setIsShowingCallsStatus(response.isShowingCallsStatus);
-    store.setWalletCallsStatus(response.walletCallsStatus);
+    store.setActiveRequest(response.activeRequest);
   });
+
+  function getRequestId(): string | number | null {
+    if (activeRequest.value) {
+      return activeRequest.value.id;
+    }
+    return null;
+  }
 
   return {
     sender: requestSender,

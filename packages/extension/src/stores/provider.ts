@@ -1,61 +1,17 @@
 import { defineStore } from 'pinia';
-import { Hex, WalletGetCallsStatusReturnType } from 'viem';
+import { Hex } from 'viem';
 import { ref } from 'vue';
 
-import {
-  MessageSender,
-  PermissionRequest,
-  SendTransactionRequest,
-  TypedDataRequest,
-  WalletCallRequest,
-} from '@/background/provider';
+import { ProviderRequest } from '@/background/provider';
 
 const useProviderStore = defineStore('provider', () => {
-  const requestId = ref<string | number | null>(null);
-  const requestSender = ref<MessageSender | null>(null);
-  const isRequestingAccounts = ref<boolean>(false);
-  const isPersonalSigning = ref<boolean>(false);
-  const personalSignedMessage = ref<Hex | null>(null);
-  const isSendingTransaction = ref<boolean>(false);
-  const transaction = ref<SendTransactionRequest | null>(null);
+  const activeRequest = ref<ProviderRequest | null>(null);
   const delegationTxHash = ref<Hex | null>(null);
   const undelegationTxHash = ref<Hex | null>(null);
-  const providerPersonalSignSignature = ref<Hex | null>(null);
-  const isRequestingPermissions = ref<boolean>(false);
-  const permissionRequest = ref<PermissionRequest | null>(null);
-  const isSigningTypedData = ref<boolean>(false);
-  const typedDataRequest = ref<TypedDataRequest | null>(null);
-  const isWalletSendingCalls = ref<boolean>(false);
-  const walletCallRequest = ref<WalletCallRequest | null>(null);
-  const isShowingCallsStatus = ref<boolean>(false);
-  const walletCallsStatus = ref<WalletGetCallsStatusReturnType | null>(null);
+  const personalSignSignature = ref<Hex | null>(null);
 
-  function setRequestId(value: string | number | null): void {
-    requestId.value = value;
-  }
-
-  function setRequestSender(value: MessageSender | null): void {
-    requestSender.value = value;
-  }
-
-  function setIsRequestingAccounts(value: boolean): void {
-    isRequestingAccounts.value = value;
-  }
-
-  function setIsPersonalSigning(value: boolean): void {
-    isPersonalSigning.value = value;
-  }
-
-  function setPersonalSignedMessage(value: Hex | null): void {
-    personalSignedMessage.value = value;
-  }
-
-  function setIsSendingTransaction(value: boolean): void {
-    isSendingTransaction.value = value;
-  }
-
-  function setTransaction(value: SendTransactionRequest | null): void {
-    transaction.value = value;
+  function setActiveRequest(value: ProviderRequest | null): void {
+    activeRequest.value = value;
   }
 
   function setDelegationTxHash(value: Hex | null): void {
@@ -66,82 +22,19 @@ const useProviderStore = defineStore('provider', () => {
     undelegationTxHash.value = value;
   }
 
-  function setProviderPersonalSignSignature(value: Hex | null): void {
-    providerPersonalSignSignature.value = value;
-  }
-
-  function setIsRequestingPermissions(value: boolean): void {
-    isRequestingPermissions.value = value;
-  }
-
-  function setPermissionRequest(value: PermissionRequest | null): void {
-    permissionRequest.value = value;
-  }
-
-  function setIsSigningTypedData(value: boolean): void {
-    isSigningTypedData.value = value;
-  }
-
-  function setTypedDataRequest(value: TypedDataRequest | null): void {
-    typedDataRequest.value = value;
-  }
-
-  function setIsWalletSendingCalls(value: boolean): void {
-    isWalletSendingCalls.value = value;
-  }
-
-  function setWalletCallRequest(value: WalletCallRequest | null): void {
-    walletCallRequest.value = value;
-  }
-
-  function setIsShowingCallsStatus(value: boolean): void {
-    isShowingCallsStatus.value = value;
-  }
-
-  function setWalletCallsStatus(
-    value: WalletGetCallsStatusReturnType | null,
-  ): void {
-    walletCallsStatus.value = value;
+  function setPersonalSignSignature(value: Hex | null): void {
+    personalSignSignature.value = value;
   }
 
   return {
-    requestId,
-    requestSender,
-    isRequestingAccounts,
-    isPersonalSigning,
-    personalSignedMessage,
-    isSendingTransaction,
-    transaction,
+    activeRequest,
+    setActiveRequest,
     delegationTxHash,
-    undelegationTxHash,
-    providerPersonalSignSignature,
-    isRequestingPermissions,
-    permissionRequest,
-    isSigningTypedData,
-    typedDataRequest,
-    isWalletSendingCalls,
-    walletCallRequest,
-    isShowingCallsStatus,
-    walletCallsStatus,
-
-    setRequestId,
-    setRequestSender,
-    setIsRequestingAccounts,
-    setIsPersonalSigning,
-    setPersonalSignedMessage,
-    setIsSendingTransaction,
-    setTransaction,
     setDelegationTxHash,
+    undelegationTxHash,
     setUndelegationTxHash,
-    setProviderPersonalSignSignature,
-    setIsRequestingPermissions,
-    setPermissionRequest,
-    setIsSigningTypedData,
-    setTypedDataRequest,
-    setIsWalletSendingCalls,
-    setWalletCallRequest,
-    setIsShowingCallsStatus,
-    setWalletCallsStatus,
+    personalSignSignature,
+    setPersonalSignSignature,
   };
 });
 

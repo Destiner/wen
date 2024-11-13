@@ -69,7 +69,7 @@ interface MessageSender {
   icon: string | undefined;
 }
 
-interface SendTransactionRequest {
+interface SendTransactionRequestData {
   to: Hex;
   from: Hex;
   gas?: Hex;
@@ -81,14 +81,14 @@ interface SendTransactionRequest {
   nonce?: Hex;
 }
 
-interface TypedDataRequest {
+interface TypedDataRequestData {
   domain: TypedDataDomain;
   types: TypedDataDefinition;
   primaryType: string;
   message: TypedData;
 }
 
-interface PermissionRequest {
+interface PermissionRequestData {
   [methodName: string]: {
     [caveatName: string]: unknown;
   };
@@ -100,7 +100,7 @@ interface WalletCall {
   data: Hex;
 }
 
-interface WalletCallRequest {
+interface WalletCallRequestData {
   version: string;
   chainId: Hex;
   from: Address;
@@ -121,31 +121,58 @@ type Response<T> =
 type AccountRequestResponse = Response<Address[]>;
 type PersonalSignResponse = Response<Hex>;
 
+interface BaseRequest {
+  sender: MessageSender;
+  id: string | number;
+}
+
+interface AccountRequest extends BaseRequest {
+  type: 'account';
+}
+
+interface PersonalSignRequest extends BaseRequest {
+  type: 'personal_sign';
+  message: Hex;
+}
+
+interface SendTransactionRequest extends BaseRequest {
+  type: 'send_transaction';
+  transaction: SendTransactionRequestData;
+}
+
+interface PermissionRequest extends BaseRequest {
+  type: 'request_permissions';
+  permissionRequest: PermissionRequestData;
+}
+
+interface TypedDataRequest extends BaseRequest {
+  type: 'sign_typed_data';
+  typedDataRequest: TypedDataRequestData;
+}
+
+interface WalletCallRequest extends BaseRequest {
+  type: 'wallet_send_calls';
+  walletCallRequest: WalletCallRequestData;
+}
+
+interface ShowCallsStatusRequest extends BaseRequest {
+  type: 'show_calls_status';
+  walletCallStatus: WalletGetCallsStatusReturnType;
+}
+
+type ProviderRequest =
+  | AccountRequest
+  | PersonalSignRequest
+  | SendTransactionRequest
+  | PermissionRequest
+  | TypedDataRequest
+  | WalletCallRequest
+  | ShowCallsStatusRequest;
+
 interface ProviderState {
-  requestSender: MessageSender | null;
-  requestId: string | number | null;
-
+  activeRequest: ProviderRequest | null;
   connections: Record<string, Address[]>;
-  isRequestingAccounts: boolean;
-
-  isPersonalSigning: boolean;
-  personalSignedMessage: Hex | null;
-
-  isSendingTransaction: boolean;
-  transaction: SendTransactionRequest | null;
-
-  isRequestingPermissions: boolean;
-  permissionRequest: PermissionRequest | null;
   permissions: WalletPermission[];
-
-  isSigningTypedData: boolean;
-  typedDataRequest: TypedDataRequest | null;
-
-  isWalletSendingCalls: boolean;
-  walletCallRequest: WalletCallRequest | null;
-
-  isShowingCallsStatus: boolean;
-  walletCallsStatus: WalletGetCallsStatusReturnType | null;
 }
 
 interface WalletState {
@@ -155,30 +182,9 @@ interface WalletState {
 const storage = new Storage();
 
 const providerState: ProviderState = {
-  requestSender: null,
-  requestId: null,
-
+  activeRequest: null,
   connections: {},
-  isRequestingAccounts: false,
-
-  isPersonalSigning: false,
-  personalSignedMessage: null,
-
-  isSendingTransaction: false,
-  transaction: null,
-
-  isRequestingPermissions: false,
-  permissionRequest: null,
   permissions: [],
-
-  isSigningTypedData: false,
-  typedDataRequest: null,
-
-  isWalletSendingCalls: false,
-  walletCallRequest: null,
-
-  isShowingCallsStatus: false,
-  walletCallsStatus: null,
 };
 
 const walletState: WalletState = {
@@ -213,12 +219,15 @@ async function requestAccounts(
   callback: (value: AccountRequestResponse) => void,
 ): Promise<void> {
   callbacks[id] = callback;
-  providerState.isRequestingAccounts = true;
-  providerState.requestId = id;
-  providerState.requestSender = sender;
+  providerState.activeRequest = {
+    type: 'account',
+    id,
+    sender,
+  };
   chrome.runtime.sendMessage<BackendRequestMessage>({
     type: REQUEST_ACCOUNTS,
     id,
+    sender,
   });
 }
 
@@ -230,13 +239,16 @@ async function personalSign(
   callback: (value: PersonalSignResponse) => void,
 ): Promise<void> {
   callbacks[id] = callback;
-  providerState.isPersonalSigning = true;
-  providerState.personalSignedMessage = message;
-  providerState.requestId = id;
-  providerState.requestSender = sender;
+  providerState.activeRequest = {
+    type: 'personal_sign',
+    id,
+    sender,
+    message,
+  };
   chrome.runtime.sendMessage<BackendRequestMessage>({
     type: PERSONAL_SIGN,
     id,
+    sender,
     data: {
       message,
     },
@@ -246,17 +258,20 @@ async function personalSign(
 async function sendTransaction(
   id: string | number,
   sender: MessageSender,
-  transaction: SendTransactionRequest,
+  transaction: SendTransactionRequestData,
   callback: (value: Response<Hex>) => void,
 ): Promise<void> {
   callbacks[id] = callback;
-  providerState.isSendingTransaction = true;
-  providerState.transaction = transaction;
-  providerState.requestId = id;
-  providerState.requestSender = sender;
+  providerState.activeRequest = {
+    type: 'send_transaction',
+    id,
+    sender,
+    transaction,
+  };
   chrome.runtime.sendMessage<BackendRequestMessage>({
     type: SEND_TRANSACTION,
     id,
+    sender,
     data: {
       transaction,
     },
@@ -270,17 +285,20 @@ async function getPermissions(): Promise<WalletPermission[]> {
 async function requestPermissions(
   id: string | number,
   sender: MessageSender,
-  permissionRequest: PermissionRequest,
-  callback: (value: Response<PermissionRequest>) => void,
+  permissionRequest: PermissionRequestData,
+  callback: (value: Response<PermissionRequestData>) => void,
 ): Promise<void> {
   callbacks[id] = callback;
-  providerState.isRequestingPermissions = true;
-  providerState.permissionRequest = permissionRequest;
-  providerState.requestId = id;
-  providerState.requestSender = sender;
+  providerState.activeRequest = {
+    type: 'request_permissions',
+    id,
+    sender,
+    permissionRequest,
+  };
   chrome.runtime.sendMessage<BackendRequestMessage>({
     type: REQUEST_PERMISSIONS,
     id,
+    sender,
     data: {
       permissionRequest,
     },
@@ -289,7 +307,7 @@ async function requestPermissions(
 
 async function revokePermissions(
   sender: MessageSender,
-  permissionRequest: PermissionRequest,
+  permissionRequest: PermissionRequestData,
 ): Promise<void> {
   const origin = sender.origin;
   if (!origin) {
@@ -308,17 +326,20 @@ async function revokePermissions(
 async function signTypedData(
   id: string | number,
   sender: MessageSender,
-  typedDataRequest: TypedDataRequest,
+  typedDataRequest: TypedDataRequestData,
   callback: (value: Response<Hex>) => void,
 ): Promise<void> {
   callbacks[id] = callback;
-  providerState.isSigningTypedData = true;
-  providerState.typedDataRequest = typedDataRequest;
-  providerState.requestId = id;
-  providerState.requestSender = sender;
+  providerState.activeRequest = {
+    type: 'sign_typed_data',
+    id,
+    sender,
+    typedDataRequest,
+  };
   chrome.runtime.sendMessage<BackendRequestMessage>({
     type: SIGN_TYPED_DATA,
     id,
+    sender,
     data: {
       typedDataRequest,
     },
@@ -363,7 +384,7 @@ async function getCapabilities(
 async function walletSendCalls(
   id: string | number,
   sender: MessageSender,
-  walletCallRequest: WalletCallRequest,
+  walletCallRequest: WalletCallRequestData,
   callback: (value: Response<Hex>) => void,
 ): Promise<boolean> {
   const { version, chainId, from, calls } = walletCallRequest;
@@ -398,13 +419,16 @@ async function walletSendCalls(
     return false;
   }
   callbacks[id] = callback;
-  providerState.isWalletSendingCalls = true;
-  providerState.walletCallRequest = walletCallRequest;
-  providerState.requestId = id;
-  providerState.requestSender = sender;
+  providerState.activeRequest = {
+    type: 'wallet_send_calls',
+    id,
+    sender,
+    walletCallRequest,
+  };
   chrome.runtime.sendMessage<BackendRequestMessage>({
     type: WALLET_SEND_CALLS,
     id,
+    sender,
     data: {
       walletCallRequest,
     },
@@ -451,14 +475,20 @@ async function getCallsStatus(
 
 async function showCallsStatus(
   id: string | number,
+  sender: MessageSender,
   identifier: Hex,
 ): Promise<void> {
   const callsStatus = await getCallsStatus(identifier);
-  providerState.isShowingCallsStatus = true;
-  providerState.walletCallsStatus = callsStatus;
+  providerState.activeRequest = {
+    type: 'show_calls_status',
+    id,
+    sender,
+    walletCallStatus: callsStatus,
+  };
   chrome.runtime.sendMessage<BackendRequestMessage>({
     type: SHOW_CALLS_STATUS,
     id,
+    sender,
     data: {
       callsStatus,
     },
@@ -466,11 +496,17 @@ async function showCallsStatus(
 }
 
 function allowAccountRequest(id: string | number, addresses: Address[]): void {
-  const origin = providerState.requestSender?.origin;
+  if (!providerState.activeRequest) {
+    return;
+  }
+  if (providerState.activeRequest.type !== 'account') {
+    return;
+  }
+  const origin = providerState.activeRequest.sender.origin;
   if (!origin) {
     return;
   }
-  providerState.isRequestingAccounts = false;
+  providerState.activeRequest = null;
   providerState.connections[origin] = addresses;
   const callback = callbacks[id];
   if (callback) {
@@ -482,7 +518,7 @@ function allowAccountRequest(id: string | number, addresses: Address[]): void {
 }
 
 function denyAccountRequest(id: string | number): void {
-  providerState.isRequestingAccounts = false;
+  providerState.activeRequest = null;
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -493,13 +529,15 @@ function denyAccountRequest(id: string | number): void {
 }
 
 async function allowPersonalSign(id: string | number): Promise<void> {
-  providerState.isPersonalSigning = false;
-  if (!providerState.personalSignedMessage) {
+  if (!providerState.activeRequest) {
     return;
   }
-  const signature = await getPersonalSignature(
-    providerState.personalSignedMessage,
-  );
+  if (providerState.activeRequest.type !== 'personal_sign') {
+    return;
+  }
+  const message = providerState.activeRequest.message;
+  providerState.activeRequest = null;
+  const signature = await getPersonalSignature(message);
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -510,7 +548,7 @@ async function allowPersonalSign(id: string | number): Promise<void> {
 }
 
 function denyPersonalSign(id: string | number): void {
-  providerState.isPersonalSigning = false;
+  providerState.activeRequest = null;
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -521,11 +559,15 @@ function denyPersonalSign(id: string | number): void {
 }
 
 async function allowSendTransaction(id: string | number): Promise<void> {
-  providerState.isSendingTransaction = false;
-  if (!providerState.transaction) {
+  if (!providerState.activeRequest) {
     return;
   }
-  const txHash = await submitTransaction(providerState.transaction);
+  if (providerState.activeRequest.type !== 'send_transaction') {
+    return;
+  }
+  const transaction = providerState.activeRequest.transaction;
+  providerState.activeRequest = null;
+  const txHash = await submitTransaction(transaction);
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -536,7 +578,7 @@ async function allowSendTransaction(id: string | number): Promise<void> {
 }
 
 function denySendTransaction(id: string | number): void {
-  providerState.isSendingTransaction = false;
+  providerState.activeRequest = null;
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -547,19 +589,23 @@ function denySendTransaction(id: string | number): void {
 }
 
 async function allowRequestPermissions(id: string | number): Promise<void> {
-  providerState.isRequestingPermissions = false;
-  if (!providerState.permissionRequest) {
+  if (!providerState.activeRequest) {
     return;
   }
-  const origin = providerState.requestSender?.origin;
+  if (providerState.activeRequest.type !== 'request_permissions') {
+    return;
+  }
+  const origin = providerState.activeRequest.sender.origin;
   if (!origin) {
     return;
   }
-  if (Object.keys(providerState.permissionRequest).includes('eth_accounts')) {
+  const permissionRequest = providerState.activeRequest.permissionRequest;
+  providerState.activeRequest = null;
+  if (Object.keys(permissionRequest).includes('eth_accounts')) {
     providerState.connections[origin] = getAddresses();
   }
   const walletPermissions: WalletPermission[] = Object.keys(
-    providerState.permissionRequest,
+    permissionRequest,
   ).map((permissionName) => {
     return {
       id: uuidv4(),
@@ -575,7 +621,6 @@ async function allowRequestPermissions(id: string | number): Promise<void> {
     };
   });
   providerState.permissions = walletPermissions;
-  providerState.permissionRequest = null;
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -586,7 +631,7 @@ async function allowRequestPermissions(id: string | number): Promise<void> {
 }
 
 function denyRequestPermissions(id: string | number): void {
-  providerState.isRequestingPermissions = false;
+  providerState.activeRequest = null;
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -597,11 +642,15 @@ function denyRequestPermissions(id: string | number): void {
 }
 
 async function allowSignTypedData(id: string | number): Promise<void> {
-  providerState.isSigningTypedData = false;
-  if (!providerState.typedDataRequest) {
+  if (!providerState.activeRequest) {
     return;
   }
-  const signature = await getTypedDataSignature(providerState.typedDataRequest);
+  if (providerState.activeRequest.type !== 'sign_typed_data') {
+    return;
+  }
+  const typedDataRequest = providerState.activeRequest.typedDataRequest;
+  providerState.activeRequest = null;
+  const signature = await getTypedDataSignature(typedDataRequest);
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -612,7 +661,7 @@ async function allowSignTypedData(id: string | number): Promise<void> {
 }
 
 function denySignTypedData(id: string | number): void {
-  providerState.isSigningTypedData = false;
+  providerState.activeRequest = null;
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -623,11 +672,15 @@ function denySignTypedData(id: string | number): void {
 }
 
 async function allowWalletSendCalls(id: string | number): Promise<void> {
-  providerState.isWalletSendingCalls = false;
-  if (!providerState.walletCallRequest) {
+  if (!providerState.activeRequest) {
     return;
   }
-  const opHash = await sendWalletCalls(providerState.walletCallRequest);
+  if (providerState.activeRequest.type !== 'wallet_send_calls') {
+    return;
+  }
+  const walletCallRequest = providerState.activeRequest.walletCallRequest;
+  providerState.activeRequest = null;
+  const opHash = await sendWalletCalls(walletCallRequest);
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -638,7 +691,7 @@ async function allowWalletSendCalls(id: string | number): Promise<void> {
 }
 
 function denyWalletSendCalls(id: string | number): void {
-  providerState.isWalletSendingCalls = false;
+  providerState.activeRequest = null;
   const callback = callbacks[id];
   if (callback) {
     callback({
@@ -649,8 +702,7 @@ function denyWalletSendCalls(id: string | number): void {
 }
 
 function hideCallsStatus(): void {
-  providerState.isShowingCallsStatus = false;
-  providerState.walletCallsStatus = null;
+  providerState.activeRequest = null;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -1038,7 +1090,7 @@ async function getPersonalSignature(message: Hex): Promise<Hex | null> {
 }
 
 async function submitTransaction(
-  transaction: SendTransactionRequest,
+  transaction: SendTransactionRequestData,
 ): Promise<Hex | null> {
   if (!walletState.mnemonic) {
     return null;
@@ -1091,7 +1143,7 @@ async function submitTransaction(
 }
 
 async function getTypedDataSignature(
-  typedDataRequest: TypedDataRequest,
+  typedDataRequest: TypedDataRequestData,
 ): Promise<Hex | null> {
   if (!walletState.mnemonic) {
     return null;
@@ -1104,7 +1156,7 @@ async function sendWalletCalls({
   from,
   capabilities,
   calls,
-}: WalletCallRequest): Promise<Hex | null> {
+}: WalletCallRequestData): Promise<Hex | null> {
   if (!walletState.mnemonic) {
     return null;
   }
@@ -1164,9 +1216,10 @@ export {
 };
 export type {
   ProviderState,
+  ProviderRequest,
   MessageSender,
-  SendTransactionRequest,
-  PermissionRequest,
-  TypedDataRequest,
-  WalletCallRequest,
+  SendTransactionRequestData,
+  PermissionRequestData,
+  TypedDataRequestData,
+  WalletCallRequestData,
 };

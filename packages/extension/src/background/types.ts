@@ -1,10 +1,11 @@
 import { Address, Hex, WalletGetCallsStatusReturnType } from 'viem';
 
 import {
-  PermissionRequest,
-  SendTransactionRequest,
-  TypedDataRequest,
-  WalletCallRequest,
+  MessageSender,
+  PermissionRequestData,
+  SendTransactionRequestData,
+  TypedDataRequestData,
+  WalletCallRequestData,
 } from './provider';
 
 const ALLOW_ACCOUNT_REQUEST = 'ALLOW_ACCOUNT_REQUEST';
@@ -50,12 +51,25 @@ interface BaseRequestMessage<
   error?: E;
 }
 
+interface BaseSenderRequestMessage<
+  T = RequestMessageType,
+  D = undefined,
+  E = undefined,
+> {
+  id: string | number;
+  sender: MessageSender;
+  type: T;
+  data?: D;
+  error?: E;
+}
+
 interface BaseIdRequestMessage<
   T = RequestMessageType,
   D = undefined,
   E = undefined,
-> extends BaseRequestMessage<T, D, E> {
+> {
   id: string | number;
+  type: T;
   data: D;
   error?: E;
 }
@@ -155,38 +169,38 @@ type SetWalletMnemonicMessage = BaseIdRequestMessage<
   string | null
 >;
 
-type RequestAccountsMessage = BaseRequestMessage<typeof REQUEST_ACCOUNTS>;
-type PersonalSignMessage = BaseRequestMessage<
+type RequestAccountsMessage = BaseSenderRequestMessage<typeof REQUEST_ACCOUNTS>;
+type PersonalSignMessage = BaseSenderRequestMessage<
   typeof PERSONAL_SIGN,
   {
     message: Hex;
   }
 >;
-type SendTransactionMessage = BaseRequestMessage<
+type SendTransactionMessage = BaseSenderRequestMessage<
   typeof SEND_TRANSACTION,
   {
-    transaction: SendTransactionRequest;
+    transaction: SendTransactionRequestData;
   }
 >;
-type RequestPermissionsMessage = BaseRequestMessage<
+type RequestPermissionsMessage = BaseSenderRequestMessage<
   typeof REQUEST_PERMISSIONS,
   {
-    permissionRequest: PermissionRequest;
+    permissionRequest: PermissionRequestData;
   }
 >;
-type SignTypedDataMessage = BaseRequestMessage<
+type SignTypedDataMessage = BaseSenderRequestMessage<
   typeof SIGN_TYPED_DATA,
   {
-    typedDataRequest: TypedDataRequest;
+    typedDataRequest: TypedDataRequestData;
   }
 >;
-type WalletSendCallsMessage = BaseRequestMessage<
+type WalletSendCallsMessage = BaseSenderRequestMessage<
   typeof WALLET_SEND_CALLS,
   {
-    walletCallRequest: WalletCallRequest;
+    walletCallRequest: WalletCallRequestData;
   }
 >;
-type ShowCallsStatusMessage = BaseRequestMessage<
+type ShowCallsStatusMessage = BaseSenderRequestMessage<
   typeof SHOW_CALLS_STATUS,
   {
     callsStatus: WalletGetCallsStatusReturnType;

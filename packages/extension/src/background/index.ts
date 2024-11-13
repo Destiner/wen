@@ -3,18 +3,18 @@ import { Address, Hex } from 'viem';
 import { type Runtime, runtime } from 'webextension-polyfill';
 
 import {
-  type SendTransactionRequest,
+  type SendTransactionRequestData,
   type MessageSender,
+  type PermissionRequestData,
+  type TypedDataRequestData,
   getChainId,
   getAccounts,
   requestAccounts,
   personalSign,
   sendTransaction,
-  PermissionRequest,
   requestPermissions,
   getPermissions,
   revokePermissions,
-  TypedDataRequest,
   signTypedData,
   getCapabilities,
   walletSendCalls,
@@ -116,7 +116,7 @@ function setupProviderConnection(port: Runtime.Port): void {
     if (data.method === 'eth_sendTransaction') {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      const params = data.params as [SendTransactionRequest];
+      const params = data.params as [SendTransactionRequestData];
       const transaction = params[0];
       openPopup();
       sendTransaction(id, sender, transaction, (response) => {
@@ -146,7 +146,7 @@ function setupProviderConnection(port: Runtime.Port): void {
     if (data.method === 'wallet_requestPermissions') {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      const params = data.params as [PermissionRequest];
+      const params = data.params as [PermissionRequestData];
       const permissionRequest = params[0];
       openPopup();
       requestPermissions(id, sender, permissionRequest, (response) => {
@@ -168,7 +168,7 @@ function setupProviderConnection(port: Runtime.Port): void {
     if (data.method === 'wallet_revokePermissions') {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      const params = data.params as [PermissionRequest];
+      const params = data.params as [PermissionRequestData];
       const permissionRequest = params[0];
       revokePermissions(sender, permissionRequest);
       port.postMessage({
@@ -180,7 +180,7 @@ function setupProviderConnection(port: Runtime.Port): void {
     if (data.method === 'eth_signTypedData_v4') {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      const params = data.params as [Address, TypedDataRequest];
+      const params = data.params as [Address, TypedDataRequestData];
       const request = params[1];
       openPopup();
       signTypedData(id, sender, request, (response) => {
@@ -214,7 +214,7 @@ function setupProviderConnection(port: Runtime.Port): void {
     if (data.method === 'wallet_sendCalls') {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      const params = data.params as [WalletCallRequest];
+      const params = data.params as [WalletCallRequestData];
       const request = params[0];
       const isValid = await walletSendCalls(id, sender, request, (response) => {
         if (response.status === true) {
@@ -253,7 +253,7 @@ function setupProviderConnection(port: Runtime.Port): void {
       const params = data.params as [Hex];
       const identifier = params[0];
       openPopup();
-      await showCallsStatus(id, identifier);
+      await showCallsStatus(id, sender, identifier);
       port.postMessage({
         jsonrpc: '2.0',
         id: data.id,
