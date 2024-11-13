@@ -19,6 +19,7 @@ const ALLOW_SIGN_TYPED_DATA = 'ALLOW_SIGN_TYPED_DATA';
 const DENY_SIGN_TYPED_DATA = 'DENY_SIGN_TYPED_DATA';
 const ALLOW_WALLET_SEND_CALLS = 'ALLOW_WALLET_SEND_CALLS';
 const DENY_WALLET_SEND_CALLS = 'DENY_WALLET_SEND_CALLS';
+const HIDE_CALLS_STATUS = 'HIDE_CALLS_STATUS';
 const PROVIDER_DELEGATE = 'PROVIDER_DELEGATE';
 const PROVIDER_UNDELEGATE = 'PROVIDER_UNDELEGATE';
 const PROVIDER_PERSONAL_SIGN = 'PROVIDER_PERSONAL_SIGN';
@@ -72,6 +73,7 @@ type FrontendRequestMessageType =
   | typeof DENY_SIGN_TYPED_DATA
   | typeof ALLOW_WALLET_SEND_CALLS
   | typeof DENY_WALLET_SEND_CALLS
+  | typeof HIDE_CALLS_STATUS
   | typeof PROVIDER_DELEGATE
   | typeof PROVIDER_UNDELEGATE
   | typeof PROVIDER_PERSONAL_SIGN
@@ -130,6 +132,7 @@ type AllowWalletSendCallsMessage = BaseIdRequestMessage<
 type DenyWalletSendCallsMessage = BaseIdRequestMessage<
   typeof DENY_WALLET_SEND_CALLS
 >;
+type HideCallsStatusMessage = BaseIdRequestMessage<typeof HIDE_CALLS_STATUS>;
 type ProviderDelegateMessage = BaseIdRequestMessage<
   typeof PROVIDER_DELEGATE,
   { delegatee: Address; data: Hex; isSponsored: boolean }
@@ -221,6 +224,7 @@ type FrontendRequestMessage =
   | DenySignTypedDataMessage
   | AllowWalletSendCallsMessage
   | DenyWalletSendCallsMessage
+  | HideCallsStatusMessage
   | ProviderDelegateMessage
   | ProviderUndelegateMessage
   | ProviderPersonalSignMessage
@@ -256,6 +260,7 @@ export {
   DENY_SIGN_TYPED_DATA,
   ALLOW_WALLET_SEND_CALLS,
   DENY_WALLET_SEND_CALLS,
+  HIDE_CALLS_STATUS,
   PROVIDER_DELEGATE,
   PROVIDER_UNDELEGATE,
   PROVIDER_PERSONAL_SIGN,
@@ -291,6 +296,7 @@ export type {
   DenySignTypedDataMessage,
   AllowWalletSendCallsMessage,
   DenyWalletSendCallsMessage,
+  HideCallsStatusMessage,
   ProviderDelegateMessage,
   ProviderUndelegateMessage,
   ProviderPersonalSignMessage,

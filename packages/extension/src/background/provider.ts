@@ -61,6 +61,7 @@ import {
   SHOW_CALLS_STATUS,
   ALLOW_WALLET_SEND_CALLS,
   DENY_WALLET_SEND_CALLS,
+  HIDE_CALLS_STATUS,
 } from './types';
 
 interface MessageSender {
@@ -630,6 +631,11 @@ function denyWalletSendCalls(id: string | number): void {
   }
 }
 
+function hideCallsStatus(): void {
+  providerState.isShowingCallsStatus = false;
+  providerState.walletCallsStatus = null;
+}
+
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function walletSendTransactionExtension(
   client: ReturnType<typeof createPublicClient>,
@@ -963,6 +969,8 @@ chrome.runtime.onMessage.addListener(
       allowWalletSendCalls(request.id);
     } else if (request.type === DENY_WALLET_SEND_CALLS) {
       denyWalletSendCalls(request.id);
+    } else if (request.type === HIDE_CALLS_STATUS) {
+      hideCallsStatus();
     } else if (request.type === PROVIDER_DELEGATE) {
       const delegatee = request.data.delegatee;
       const data = request.data.data;

@@ -39,6 +39,7 @@ import {
   ALLOW_WALLET_SEND_CALLS,
   DENY_WALLET_SEND_CALLS,
   SHOW_CALLS_STATUS,
+  HIDE_CALLS_STATUS,
 } from '@/background/types';
 import useProviderStore from '@/stores/provider';
 import { promisify } from '@/utils';
@@ -88,7 +89,7 @@ interface UseProvider {
 
   isShowingCallsStatus: Ref<boolean>;
   walletCallsStatus: Ref<WalletGetCallsStatusReturnType | null>;
-  closeCallsStatus: () => void;
+  hideCallsStatus: () => void;
 }
 
 function useProvider(): UseProvider {
@@ -357,7 +358,15 @@ function useProvider(): UseProvider {
   const walletCallsStatus = computed<WalletGetCallsStatusReturnType | null>(
     () => store.walletCallsStatus,
   );
-  function closeCallsStatus(): void {
+  function hideCallsStatus(): void {
+    if (!requestId.value) {
+      return;
+    }
+    chrome.runtime.sendMessage<FrontendRequestMessage>({
+      id: requestId.value,
+      type: HIDE_CALLS_STATUS,
+      data: undefined,
+    });
     store.setIsShowingCallsStatus(false);
   }
 
@@ -522,7 +531,7 @@ function useProvider(): UseProvider {
 
     isShowingCallsStatus,
     walletCallsStatus,
-    closeCallsStatus,
+    hideCallsStatus,
   };
 }
 
