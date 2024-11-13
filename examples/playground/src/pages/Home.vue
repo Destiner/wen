@@ -54,13 +54,18 @@
             </div>
 
             <div
-              v-if="!accountCodeResult.isFetching.value"
               class="data-row"
-              :class="{ invalid: !isValidDelegatee }"
+              :class="{
+                invalid:
+                  !isValidDelegatee && !accountCodeResult.isFetching.value,
+              }"
             >
               <div class="label">Delegatee</div>
               <div class="value">
-                <template v-if="isValidDelegatee">
+                <template v-if="accountCodeResult.isFetching.value">
+                  Loading...
+                </template>
+                <template v-else-if="isValidDelegatee">
                   {{ delegateeAddress }}
                 </template>
                 <template v-else-if="delegateeAddress">
