@@ -23,9 +23,10 @@ import WenPage from '@/components/__common/WenPage.vue';
 import { useProvider } from '@/composables/useProvider';
 import { formatJson } from '@/utils/formatting';
 
-const { walletCallsStatus } = useProvider();
+const { walletCallsStatus, closeCallsStatus } = useProvider();
 
 function close(): void {
+  closeCallsStatus();
   window.close();
 }
 </script>

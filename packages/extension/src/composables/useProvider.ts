@@ -88,6 +88,7 @@ interface UseProvider {
 
   isShowingCallsStatus: Ref<boolean>;
   walletCallsStatus: Ref<WalletGetCallsStatusReturnType | null>;
+  closeCallsStatus: () => void;
 }
 
 function useProvider(): UseProvider {
@@ -356,6 +357,9 @@ function useProvider(): UseProvider {
   const walletCallsStatus = computed<WalletGetCallsStatusReturnType | null>(
     () => store.walletCallsStatus,
   );
+  function closeCallsStatus(): void {
+    store.setIsShowingCallsStatus(false);
+  }
 
   onMounted(async () => {
     document.addEventListener('DOMContentLoaded', () => {
@@ -518,6 +522,7 @@ function useProvider(): UseProvider {
 
     isShowingCallsStatus,
     walletCallsStatus,
+    closeCallsStatus,
   };
 }
 
