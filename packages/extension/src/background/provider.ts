@@ -6,6 +6,7 @@ import {
   Hex,
   http,
   SendTransactionErrorType,
+  slice,
   toHex,
   TypedData,
   TypedDataDefinition,
@@ -25,6 +26,7 @@ import { odysseyTestnet } from 'viem/chains';
 import { eip7702Actions } from 'viem/experimental';
 
 import { Execution, getOpHash, prepareOp, submitOp } from '@/utils/aa';
+import { KERNEL_V3_IMPLEMENTATION_ADDRESS } from '@/utils/consts';
 
 import { Storage } from './storage';
 import {
@@ -322,9 +324,27 @@ async function signTypedData(
   });
 }
 
-function getCapabilities(address: Address): WalletCapabilitiesRecord {
+async function getCapabilities(
+  address: Address,
+): Promise<WalletCapabilitiesRecord> {
   const addresses = getAddresses();
   if (!addresses.includes(address)) {
+    return {};
+  }
+  // Make sure that it delegates to the correct address
+  const publicClient = createPublicClient({
+    chain: odysseyTestnet,
+    transport: http(),
+  });
+  const code = await publicClient.getCode({ address });
+  if (!code) {
+    return {};
+  }
+  if (!code.startsWith('0xef0100')) {
+    return {};
+  }
+  const delegatee = slice(code, 3, 3 + 20);
+  if (delegatee !== KERNEL_V3_IMPLEMENTATION_ADDRESS) {
     return {};
   }
   return {

@@ -204,7 +204,7 @@ function setupProviderConnection(port: Runtime.Port): void {
       // @ts-ignore
       const params = data.params as [Address];
       const address = params[0];
-      const capabilities = getCapabilities(address);
+      const capabilities = await getCapabilities(address);
       port.postMessage({
         jsonrpc: '2.0',
         id: data.id,
