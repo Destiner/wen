@@ -136,7 +136,7 @@ function setupProviderConnection(port: Runtime.Port): void {
       });
     }
     if (data.method === 'wallet_getPermissions') {
-      const permissions = getPermissions();
+      const permissions = getPermissions(sender);
       port.postMessage({
         jsonrpc: '2.0',
         id: data.id,

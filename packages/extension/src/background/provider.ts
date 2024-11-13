@@ -172,7 +172,7 @@ type ProviderRequest =
 interface ProviderState {
   activeRequest: ProviderRequest | null;
   connections: Record<string, Address[]>;
-  permissions: WalletPermission[];
+  permissions: Record<string, WalletPermission[]>;
 }
 
 interface WalletState {
@@ -184,7 +184,7 @@ const storage = new Storage();
 const providerState: ProviderState = {
   activeRequest: null,
   connections: {},
-  permissions: [],
+  permissions: {},
 };
 
 const walletState: WalletState = {
@@ -278,8 +278,14 @@ async function sendTransaction(
   });
 }
 
-async function getPermissions(): Promise<WalletPermission[]> {
-  return providerState.permissions;
+async function getPermissions(
+  sender: MessageSender,
+): Promise<WalletPermission[]> {
+  const origin = sender.origin;
+  if (!origin) {
+    return [];
+  }
+  return providerState.permissions[origin] || [];
 }
 
 async function requestPermissions(
@@ -316,7 +322,8 @@ async function revokePermissions(
   if (Object.keys(permissionRequest).includes('eth_accounts')) {
     providerState.connections[origin] = [];
   }
-  providerState.permissions = providerState.permissions.filter((permission) => {
+  const originPermissions = providerState.permissions[origin] || [];
+  providerState.permissions[origin] = originPermissions.filter((permission) => {
     return !Object.keys(permissionRequest).includes(
       permission.parentCapability,
     );
@@ -620,7 +627,7 @@ async function allowRequestPermissions(id: string | number): Promise<void> {
       date: Date.now(),
     };
   });
-  providerState.permissions = walletPermissions;
+  providerState.permissions[origin] = walletPermissions;
   const callback = callbacks[id];
   if (callback) {
     callback({
