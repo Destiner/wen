@@ -365,21 +365,37 @@ async function walletSendCalls(
   sender: MessageSender,
   walletCallRequest: WalletCallRequest,
   callback: (value: Response<Hex>) => void,
-): Promise<void> {
+): Promise<boolean> {
   const { version, chainId, from, calls } = walletCallRequest;
   if (version !== '1.0') {
-    throw new Error('Unsupported version');
+    callback({
+      status: false,
+      error: new Error('Unsupported version'),
+    });
+    return false;
   }
 
   if (chainId !== toHex(odysseyTestnet.id)) {
-    throw new Error('Unsupported chain');
+    callback({
+      status: false,
+      error: new Error('Unsupported chain'),
+    });
+    return false;
   }
   const addresses = getAddresses();
   if (!addresses.includes(from)) {
-    throw new Error('Account is not connected');
+    callback({
+      status: false,
+      error: new Error('Account is not connected'),
+    });
+    return false;
   }
   if (calls.length === 0) {
-    throw new Error('Calls are empty');
+    callback({
+      status: false,
+      error: new Error('Calls are empty'),
+    });
+    return false;
   }
   callbacks[id] = callback;
   providerState.isWalletSendingCalls = true;
@@ -393,6 +409,7 @@ async function walletSendCalls(
       walletCallRequest,
     },
   });
+  return true;
 }
 
 async function getCallsStatus(

@@ -216,8 +216,7 @@ function setupProviderConnection(port: Runtime.Port): void {
       // @ts-ignore
       const params = data.params as [WalletCallRequest];
       const request = params[0];
-      openPopup();
-      walletSendCalls(id, sender, request, (response) => {
+      const isValid = await walletSendCalls(id, sender, request, (response) => {
         if (response.status === true) {
           port.postMessage({
             jsonrpc: '2.0',
@@ -232,6 +231,9 @@ function setupProviderConnection(port: Runtime.Port): void {
           });
         }
       });
+      if (isValid) {
+        openPopup();
+      }
     }
     if (data.method === 'wallet_getCallsStatus') {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
