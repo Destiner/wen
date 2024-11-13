@@ -329,7 +329,7 @@ async function getCapabilities(
   address: Address,
 ): Promise<WalletCapabilitiesRecord> {
   const addresses = getAddresses();
-  if (!addresses.includes(address)) {
+  if (!addresses.includes(address.toLowerCase() as Address)) {
     return {};
   }
   // Make sure that it delegates to the correct address
@@ -383,7 +383,7 @@ async function walletSendCalls(
     return false;
   }
   const addresses = getAddresses();
-  if (!addresses.includes(from)) {
+  if (!addresses.includes(from.toLowerCase() as Address)) {
     callback({
       status: false,
       error: new Error('Account is not connected'),
@@ -1022,7 +1022,7 @@ function getAddresses(): Address[] {
     return [];
   }
   const account = mnemonicToAccount(walletState.mnemonic);
-  return [account.address];
+  return [account.address.toLowerCase() as Address];
 }
 
 async function getPersonalSignature(message: Hex): Promise<Hex | null> {
