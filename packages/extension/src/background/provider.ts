@@ -17,6 +17,7 @@ import {
 } from 'viem';
 import {
   createBundlerClient,
+  createPaymasterClient,
   entryPoint07Address,
 } from 'viem/account-abstraction';
 import { mnemonicToAccount } from 'viem/accounts';
@@ -331,6 +332,9 @@ function getCapabilities(address: Address): WalletCapabilitiesRecord {
       atomicBatch: {
         supported: true,
       },
+      paymasterService: {
+        supported: true,
+      },
     },
   };
 }
@@ -341,7 +345,7 @@ async function walletSendCalls(
   walletCallRequest: WalletCallRequest,
   callback: (value: Response<Hex>) => void,
 ): Promise<void> {
-  const { version, chainId, from, calls, capabilities } = walletCallRequest;
+  const { version, chainId, from, calls } = walletCallRequest;
   if (version !== '1.0') {
     throw new Error('Unsupported version');
   }
@@ -352,11 +356,6 @@ async function walletSendCalls(
   const addresses = getAddresses();
   if (!addresses.includes(from)) {
     throw new Error('Account is not connected');
-  }
-  if (capabilities && capabilities[chainId]) {
-    if (capabilities[chainId].paymasterService) {
-      throw new Error('Unsupported capability: paymasterService');
-    }
   }
   if (calls.length === 0) {
     throw new Error('Calls are empty');
@@ -1058,11 +1057,20 @@ async function getTypedDataSignature(
 
 async function sendWalletCalls({
   from,
+  capabilities,
   calls,
 }: WalletCallRequest): Promise<Hex | null> {
   if (!walletState.mnemonic) {
     return null;
   }
+  const chainCapabilities =
+    capabilities && capabilities[toHex(odysseyTestnet.id)];
+  const paymasterClient =
+    chainCapabilities && chainCapabilities.paymasterService
+      ? createPaymasterClient({
+          transport: http(chainCapabilities.paymasterService.url),
+        })
+      : null;
   const executions: Execution[] = (calls as WalletCall[]).map((call) => {
     if (!call.to) {
       throw new Error('Create transactions are not supported');
@@ -1073,7 +1081,7 @@ async function sendWalletCalls({
       callData: call.data,
     };
   });
-  const op = await prepareOp(from, null, executions, 0n);
+  const op = await prepareOp(from, paymasterClient, executions, 0n);
   const opHash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
   if (!opHash) {
     return null;
