@@ -18,6 +18,7 @@ import {
   signTypedData,
   getCapabilities,
   walletSendCalls,
+  getCallsStatus,
 } from './provider';
 
 init();
@@ -229,6 +230,18 @@ function setupProviderConnection(port: Runtime.Port): void {
             error: response.error,
           });
         }
+      });
+    }
+    if (data.method === 'wallet_getCallsStatus') {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const params = data.params as [Hex];
+      const identifier = params[0];
+      const status = await getCallsStatus(identifier);
+      port.postMessage({
+        jsonrpc: '2.0',
+        id: data.id,
+        result: status,
       });
     }
   });
