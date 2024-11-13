@@ -12,7 +12,7 @@
     "wallet",
     "vue"
   ],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "vite build",
