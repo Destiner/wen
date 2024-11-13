@@ -9,6 +9,8 @@ Ethereum Wallet for Developers
 ## Features
 
 - EIP-7702 delegation designation
+- ERC-5792 wallet capabilities
+- ERC-7677 paymaster service
 
 ## Supported methods
 
@@ -21,6 +23,15 @@ Ethereum Wallet for Developers
 - `wallet_getPermissions`
 - `wallet_requestPermissions`
 - `wallet_revokePermissions`
+- `wallet_getCapabilities`
+- `wallet_sendCalls`
+- `wallet_getCallsStatus`
+- `wallet_showCallsStatus`
+
+### Capabilities
+
+- `atomicBatch`
+- `paymasterService`
 
 ## Packages
 
