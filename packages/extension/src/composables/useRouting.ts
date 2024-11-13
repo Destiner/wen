@@ -28,6 +28,9 @@ function useRouting(): void {
   const isProviderWalletSendingCalls = computed(
     () => provider.isWalletSendingCalls.value,
   );
+  const isProviderShowingCallsStatus = computed(
+    () => provider.isShowingCallsStatus.value,
+  );
 
   watch(isProviderRequestingAccount, (value) => {
     if (!hasWalletAddress.value) {
@@ -95,6 +98,17 @@ function useRouting(): void {
     }
   });
 
+  watch(isProviderShowingCallsStatus, (value) => {
+    if (!hasWalletAddress.value) {
+      return;
+    }
+    if (value) {
+      router.push({ name: 'wallet-calls-status' });
+    } else {
+      router.push({ name: 'home' });
+    }
+  });
+
   watch(
     hasWalletAddress,
     (value) => {
@@ -124,6 +138,10 @@ function useRouting(): void {
       }
       if (isProviderWalletSendingCalls.value) {
         router.push({ name: 'wallet-send-calls' });
+        return;
+      }
+      if (isProviderShowingCallsStatus.value) {
+        router.push({ name: 'wallet-calls-status' });
         return;
       }
       router.push({ name: 'home' });

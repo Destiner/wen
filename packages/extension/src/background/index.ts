@@ -19,6 +19,7 @@ import {
   getCapabilities,
   walletSendCalls,
   getCallsStatus,
+  showCallsStatus,
 } from './provider';
 
 init();
@@ -242,6 +243,19 @@ function setupProviderConnection(port: Runtime.Port): void {
         jsonrpc: '2.0',
         id: data.id,
         result: status,
+      });
+    }
+    if (data.method === 'wallet_showCallsStatus') {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      const params = data.params as [Hex];
+      const identifier = params[0];
+      openPopup();
+      await showCallsStatus(id, identifier);
+      port.postMessage({
+        jsonrpc: '2.0',
+        id: data.id,
+        result: null,
       });
     }
   });

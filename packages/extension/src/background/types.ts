@@ -1,4 +1,4 @@
-import { Address, Hex } from 'viem';
+import { Address, Hex, WalletGetCallsStatusReturnType } from 'viem';
 
 import {
   PermissionRequest,
@@ -33,6 +33,7 @@ const SEND_TRANSACTION = 'SEND_TRANSACTION';
 const REQUEST_PERMISSIONS = 'REQUEST_PERMISSIONS';
 const SIGN_TYPED_DATA = 'SIGN_TYPED_DATA';
 const WALLET_SEND_CALLS = 'WALLET_SEND_CALLS';
+const SHOW_CALLS_STATUS = 'SHOW_CALLS_STATUS';
 const PROVIDER_DELEGATE_RESULT = 'PROVIDER_DELEGATE_RESULT';
 const PROVIDER_UNDELEGATE_RESULT = 'PROVIDER_UNDELEGATE_RESULT';
 const PROVIDER_PERSONAL_SIGN_RESULT = 'PROVIDER_PERSONAL_SIGN_RESULT';
@@ -86,6 +87,7 @@ type BackendRequestMessageType =
   | typeof REQUEST_PERMISSIONS
   | typeof SIGN_TYPED_DATA
   | typeof WALLET_SEND_CALLS
+  | typeof SHOW_CALLS_STATUS
   | typeof PROVIDER_DELEGATE_RESULT
   | typeof PROVIDER_UNDELEGATE_RESULT
   | typeof PROVIDER_PERSONAL_SIGN_RESULT;
@@ -181,6 +183,12 @@ type WalletSendCallsMessage = BaseRequestMessage<
     walletCallRequest: WalletCallRequest;
   }
 >;
+type ShowCallsStatusMessage = BaseRequestMessage<
+  typeof SHOW_CALLS_STATUS,
+  {
+    callsStatus: WalletGetCallsStatusReturnType;
+  }
+>;
 type ProviderDelegateResultMessage = BaseRequestMessage<
   typeof PROVIDER_DELEGATE_RESULT,
   {
@@ -228,6 +236,7 @@ type BackendRequestMessage =
   | RequestPermissionsMessage
   | SignTypedDataMessage
   | WalletSendCallsMessage
+  | ShowCallsStatusMessage
   | ProviderDelegateResultMessage
   | ProviderUndelegateResultMessage
   | ProviderPersonalSignResultMessage;
@@ -260,6 +269,7 @@ export {
   REQUEST_PERMISSIONS,
   SIGN_TYPED_DATA,
   WALLET_SEND_CALLS,
+  SHOW_CALLS_STATUS,
   PROVIDER_DELEGATE_RESULT,
   PROVIDER_UNDELEGATE_RESULT,
   PROVIDER_PERSONAL_SIGN_RESULT,
@@ -294,6 +304,7 @@ export type {
   SendTransactionMessage,
   RequestPermissionsMessage,
   WalletSendCallsMessage,
+  ShowCallsStatusMessage,
   ProviderDelegateResultMessage,
   ProviderUndelegateResultMessage,
   ProviderPersonalSignResultMessage,

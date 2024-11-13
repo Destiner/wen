@@ -55,6 +55,7 @@ import {
   DENY_SIGN_TYPED_DATA,
   SIGN_TYPED_DATA,
   WALLET_SEND_CALLS,
+  SHOW_CALLS_STATUS,
   ALLOW_WALLET_SEND_CALLS,
   DENY_WALLET_SEND_CALLS,
 } from './types';
@@ -138,6 +139,9 @@ interface ProviderState {
 
   isWalletSendingCalls: boolean;
   walletCallRequest: WalletCallRequest | null;
+
+  isShowingCallsStatus: boolean;
+  walletCallsStatus: WalletGetCallsStatusReturnType | null;
 }
 
 interface WalletState {
@@ -168,6 +172,9 @@ const providerState: ProviderState = {
 
   isWalletSendingCalls: false,
   walletCallRequest: null,
+
+  isShowingCallsStatus: false,
+  walletCallsStatus: null,
 };
 
 const walletState: WalletState = {
@@ -403,6 +410,22 @@ async function getCallsStatus(
       },
     ],
   };
+}
+
+async function showCallsStatus(
+  id: string | number,
+  identifier: Hex,
+): Promise<void> {
+  const callsStatus = await getCallsStatus(identifier);
+  providerState.isShowingCallsStatus = true;
+  providerState.walletCallsStatus = callsStatus;
+  chrome.runtime.sendMessage<BackendRequestMessage>({
+    type: SHOW_CALLS_STATUS,
+    id,
+    data: {
+      callsStatus,
+    },
+  });
 }
 
 function allowAccountRequest(id: string | number, addresses: Address[]): void {
@@ -1084,6 +1107,7 @@ export {
   getCapabilities,
   walletSendCalls,
   getCallsStatus,
+  showCallsStatus,
 };
 export type {
   ProviderState,

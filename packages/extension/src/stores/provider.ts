@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { Hex } from 'viem';
+import { Hex, WalletGetCallsStatusReturnType } from 'viem';
 import { ref } from 'vue';
 
 import {
@@ -27,6 +27,8 @@ const useProviderStore = defineStore('provider', () => {
   const typedDataRequest = ref<TypedDataRequest | null>(null);
   const isWalletSendingCalls = ref<boolean>(false);
   const walletCallRequest = ref<WalletCallRequest | null>(null);
+  const isShowingCallsStatus = ref<boolean>(false);
+  const walletCallsStatus = ref<WalletGetCallsStatusReturnType | null>(null);
 
   function setRequestId(value: string | number | null): void {
     requestId.value = value;
@@ -92,6 +94,16 @@ const useProviderStore = defineStore('provider', () => {
     walletCallRequest.value = value;
   }
 
+  function setIsShowingCallsStatus(value: boolean): void {
+    isShowingCallsStatus.value = value;
+  }
+
+  function setWalletCallsStatus(
+    value: WalletGetCallsStatusReturnType | null,
+  ): void {
+    walletCallsStatus.value = value;
+  }
+
   return {
     requestId,
     requestSender,
@@ -109,6 +121,8 @@ const useProviderStore = defineStore('provider', () => {
     typedDataRequest,
     isWalletSendingCalls,
     walletCallRequest,
+    isShowingCallsStatus,
+    walletCallsStatus,
 
     setRequestId,
     setRequestSender,
@@ -126,6 +140,8 @@ const useProviderStore = defineStore('provider', () => {
     setTypedDataRequest,
     setIsWalletSendingCalls,
     setWalletCallRequest,
+    setIsShowingCallsStatus,
+    setWalletCallsStatus,
   };
 });
 

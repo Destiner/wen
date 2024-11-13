@@ -1,5 +1,5 @@
 import { whenever } from '@vueuse/core';
-import { Address, Hex } from 'viem';
+import { Address, Hex, WalletGetCallsStatusReturnType } from 'viem';
 import { computed, onMounted, Ref, ref } from 'vue';
 
 import {
@@ -38,6 +38,7 @@ import {
   WALLET_SEND_CALLS,
   ALLOW_WALLET_SEND_CALLS,
   DENY_WALLET_SEND_CALLS,
+  SHOW_CALLS_STATUS,
 } from '@/background/types';
 import useProviderStore from '@/stores/provider';
 import { promisify } from '@/utils';
@@ -84,6 +85,9 @@ interface UseProvider {
   walletCallRequest: Ref<WalletCallRequest | null>;
   allowWalletSendCalls: () => void;
   denyWalletSendCalls: () => void;
+
+  isShowingCallsStatus: Ref<boolean>;
+  walletCallsStatus: Ref<WalletGetCallsStatusReturnType | null>;
 }
 
 function useProvider(): UseProvider {
@@ -346,6 +350,13 @@ function useProvider(): UseProvider {
     store.setIsWalletSendingCalls(false);
   }
 
+  const isShowingCallsStatus = computed<boolean>(
+    () => store.isShowingCallsStatus,
+  );
+  const walletCallsStatus = computed<WalletGetCallsStatusReturnType | null>(
+    () => store.walletCallsStatus,
+  );
+
   onMounted(async () => {
     document.addEventListener('DOMContentLoaded', () => {
       chrome.runtime.onMessage.addListener((message: BackendRequestMessage) => {
@@ -440,6 +451,10 @@ function useProvider(): UseProvider {
           store.setWalletCallRequest(message.data.walletCallRequest);
           store.setRequestId(message.id);
         }
+        if (message.type === SHOW_CALLS_STATUS) {
+          store.setIsShowingCallsStatus(true);
+          store.setWalletCallsStatus(message.data.callsStatus);
+        }
       });
     });
     const response = (await chrome.runtime.sendMessage<FrontendRequestMessage>({
@@ -460,6 +475,8 @@ function useProvider(): UseProvider {
     store.setTypedDataRequest(response.typedDataRequest);
     store.setIsWalletSendingCalls(response.isWalletSendingCalls);
     store.setWalletCallRequest(response.walletCallRequest);
+    store.setIsShowingCallsStatus(response.isShowingCallsStatus);
+    store.setWalletCallsStatus(response.walletCallsStatus);
   });
 
   return {
@@ -498,6 +515,9 @@ function useProvider(): UseProvider {
     walletCallRequest,
     allowWalletSendCalls,
     denyWalletSendCalls,
+
+    isShowingCallsStatus,
+    walletCallsStatus,
   };
 }
 
