@@ -68,6 +68,14 @@
                 <template v-else-if="isValidDelegatee">
                   {{ delegateeAddress }}
                 </template>
+                <template
+                  v-else-if="
+                    delegateeAddress === KERNEL_V3_IMPLEMENTATION_LEGACY_ADDRESS
+                  "
+                >
+                  {{ delegateeAddress }} (legacy Kernel V3, please delegate to
+                  {{ KERNEL_V3_IMPLEMENTATION_ADDRESS }})
+                </template>
                 <template v-else-if="delegateeAddress">
                   {{ delegateeAddress }} (not supported, please delegate to
                   Kernel V3)
@@ -172,6 +180,133 @@
           </div>
         </div>
       </div>
+      <div
+        v-if="isConnected"
+        class="card"
+      >
+        <div class="sessions">
+          <div
+            v-if="isValidOwner"
+            class="data-row"
+            :class="{ invalid: !areSessionKeysEnabled }"
+          >
+            <div class="label">Session Keys</div>
+            <div class="value">
+              <template v-if="areSessionKeysEnabled">Enabled</template>
+              <template v-else>Disabled</template>
+            </div>
+          </div>
+          <div
+            v-if="areSessionKeysEnabled"
+            class="data-row"
+            :class="{ invalid: !isSessionEnabled }"
+          >
+            <div class="label">Active Session</div>
+            <div class="value">
+              <template v-if="isSessionEnabled">Enabled</template>
+              <template v-else>Disabled</template>
+            </div>
+          </div>
+          <div
+            v-if="isSessionEnabled"
+            class="data-row"
+          >
+            <div class="label">Count</div>
+            <div class="value">
+              {{ count }}
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <div
+            v-if="!isSessionEnabled"
+            class="action"
+          >
+            <div>
+              <PlayButton
+                type="secondary"
+                :disabled="!isValidOwner || isPending"
+                @click="handleEnableSession"
+              >
+                Enable session
+              </PlayButton>
+            </div>
+            <div>
+              <div
+                v-if="enableSessionTxHash"
+                class="action-result"
+              >
+                Sent
+                <a
+                  :href="getBlockExplorerTxUrl(enableSessionTxHash)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <IconArrowTopRight class="icon" />
+                </a>
+              </div>
+            </div>
+          </div>
+          <div
+            v-if="isSessionEnabled"
+            class="action"
+          >
+            <div>
+              <PlayButton
+                type="secondary"
+                :disabled="!isValidOwner || isPending"
+                @click="handleIncrease"
+              >
+                Increase
+              </PlayButton>
+            </div>
+            <div>
+              <div
+                v-if="increaseTxHash"
+                class="action-result"
+              >
+                Sent
+                <a
+                  :href="getBlockExplorerTxUrl(increaseTxHash)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <IconArrowTopRight class="icon" />
+                </a>
+              </div>
+            </div>
+          </div>
+          <div
+            v-if="isSessionEnabled"
+            class="action"
+          >
+            <div>
+              <PlayButton
+                type="secondary"
+                :disabled="!isValidOwner || isPending"
+                @click="handleDecrease"
+              >
+                Decrease
+              </PlayButton>
+            </div>
+            <div>
+              <div
+                v-if="decreaseTxHash"
+                class="action-result"
+              >
+                Sent
+                <a
+                  :href="getBlockExplorerTxUrl(decreaseTxHash)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <IconArrowTopRight class="icon" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   <DialogConnectors
@@ -181,6 +316,7 @@
 </template>
 
 <script setup lang="ts">
+import { useStorage } from '@vueuse/core';
 import {
   Connector,
   useAccount,
@@ -192,35 +328,50 @@ import {
   useSignMessage,
 } from '@wagmi/vue';
 import {
+  Account,
   Address,
   concat,
   createPublicClient,
+  encodeFunctionData,
+  getAbiItem,
   Hex,
   http,
   slice,
+  toFunctionSelector,
   zeroAddress,
+  zeroHash,
 } from 'viem';
 import {
   createBundlerClient,
   createPaymasterClient,
   entryPoint07Address,
 } from 'viem/account-abstraction';
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { odysseyTestnet } from 'viem/chains';
 import { computed, ref, watch } from 'vue';
 
+import counterAbi from '@/abi/counter';
 import kernelMultiChainValidatorAbi from '@/abi/kernelMultiChainValidator';
 import kernelV3ImplementationAbi from '@/abi/kernelV3Implementation';
+import smartSessionModuleAbi from '@/abi/smartSessionModule';
 import DialogConnectors from '@/components/DialogConnectors.vue';
 import IconArrowTopRight from '@/components/IconArrowTopRight.vue';
 import PlayButton from '@/components/PlayButton.vue';
 import useEnv from '@/composables/useEnv';
 import {
-  Execution,
+  type Execution,
+  STUB_ECDSA_SIGNATURE,
   getOpHash,
   getOpTxHash,
   prepareOp,
   submitOp,
 } from '@/utils/aa';
+import {
+  encodeSessionSignature,
+  getEnableSessionsCallData,
+  getPermissionId,
+  Permission,
+} from '@/utils/sessionKeys';
 
 const { bundlerRpc, paymasterRpc } = useEnv();
 
@@ -243,6 +394,17 @@ const KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID = concat([
   '0x01',
   KERNEL_V3_MULTI_CHAIN_VALIDATOR_ADDRESS,
 ]);
+const SMART_SESSION_VALIDATOR_ADDRESS =
+  '0x4988c01c4a1b8bd32e40ecc7561a7669a6cc8295';
+const KERNEL_V3_SESSION_KEY_VALIDATOR_ID = concat([
+  '0x00',
+  '0x01',
+  SMART_SESSION_VALIDATOR_ADDRESS,
+  '0x0000',
+]);
+const ECDSA_SIGNER_ADDRESS = '0xfbA60af059386F7947b3a240442040AeE058A361';
+const COUNTER_ADDRESS = '0x73592f5DDc3065dc85F1dE4F835F82937ff2adAc';
+const YES_POLICY_ADDRESS = '0x06034a446BB858edd06dd0F12c771A8Ac6058AFD';
 
 const isConnected = computed(() => connectedAccount.isConnected.value);
 const accountAddress = computed(() => connectedAccount.address.value);
@@ -259,13 +421,7 @@ const delegateeAddress = computed<Address | null>(() => {
   return slice(accountCodeResult.data.value, 3, 3 + 20);
 });
 const isValidDelegatee = computed(() => {
-  if (delegateeAddress.value === KERNEL_V3_IMPLEMENTATION_ADDRESS) {
-    return true;
-  }
-  if (delegateeAddress.value === KERNEL_V3_IMPLEMENTATION_LEGACY_ADDRESS) {
-    return true;
-  }
-  return false;
+  return delegateeAddress.value === KERNEL_V3_IMPLEMENTATION_ADDRESS;
 });
 
 const rootValidatorResult = useReadContract({
@@ -306,6 +462,257 @@ const isValidOwner = computed(() => {
   }
   return validatorStorage.data.value === accountAddress.value;
 });
+
+const isSmartSessionModuleInstalled = useReadContract({
+  address: accountAddress,
+  abi: kernelV3ImplementationAbi,
+  functionName: 'isModuleInstalled',
+  args: [1n, SMART_SESSION_VALIDATOR_ADDRESS, '0x'],
+});
+watch(accountAddress, () => {
+  isSmartSessionModuleInstalled.refetch();
+});
+const areSessionKeysEnabled = computed(
+  () => isSmartSessionModuleInstalled.data.value,
+);
+const sessionPrivateKey = useStorage<Hex>(
+  'wen-demo-session-private-key',
+  generatePrivateKey(),
+);
+const sessionAccount = computed<Account | null>(() => {
+  if (!sessionPrivateKey.value) {
+    return null;
+  }
+  return privateKeyToAccount(sessionPrivateKey.value);
+});
+const permission = computed<Permission | null>(() => {
+  if (!sessionAccount.value) {
+    return null;
+  }
+
+  return {
+    validator: ECDSA_SIGNER_ADDRESS,
+    validatorInitData: sessionAccount.value.address,
+    salt: zeroHash,
+  };
+});
+const permissionId = computed(() => {
+  if (!permission.value) {
+    return zeroHash;
+  }
+  return getPermissionId(permission.value);
+});
+const isSessionEnabledResult = useReadContract({
+  address: SMART_SESSION_VALIDATOR_ADDRESS,
+  abi: smartSessionModuleAbi,
+  functionName: 'isSessionEnabled',
+  args: [permissionId, ecdsaValidatorStorageAddress],
+});
+watch(ecdsaValidatorStorageAddress, () => {
+  isSessionEnabledResult.refetch();
+});
+const isSessionEnabled = computed(() => isSessionEnabledResult.data.value);
+const enableSessionTxHash = ref<Hex | null>(null);
+async function handleEnableSession(): Promise<void> {
+  isPending.value = true;
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(bundlerRpc),
+  });
+  const opHash = await sendEnableSessionOp();
+  if (!opHash) {
+    isPending.value = false;
+    return;
+  }
+  const txHash = await getOpTxHash(bundlerClient, opHash);
+  isPending.value = false;
+  enableSessionTxHash.value = txHash;
+  isSessionEnabledResult.refetch();
+}
+async function sendEnableSessionOp(): Promise<Hex | null> {
+  if (!accountAddress.value) {
+    return null;
+  }
+  if (!permission.value) {
+    return null;
+  }
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(bundlerRpc),
+  });
+  const paymasterClient = createPaymasterClient({
+    transport: http(paymasterRpc),
+  });
+  const callData = getEnableSessionsCallData(permission.value, [
+    {
+      target: COUNTER_ADDRESS,
+      selector: toFunctionSelector(
+        getAbiItem({
+          abi: counterAbi,
+          name: 'increase',
+        }),
+      ),
+      policies: [
+        {
+          policy: YES_POLICY_ADDRESS,
+          initData: '0x',
+        },
+      ],
+    },
+    {
+      target: COUNTER_ADDRESS,
+      selector: toFunctionSelector(
+        getAbiItem({
+          abi: counterAbi,
+          name: 'decrease',
+        }),
+      ),
+      policies: [
+        {
+          policy: YES_POLICY_ADDRESS,
+          initData: '0x',
+        },
+      ],
+    },
+  ]);
+  const op = await prepareOp(
+    accountAddress.value,
+    bundlerClient,
+    paymasterClient,
+    [
+      {
+        target: SMART_SESSION_VALIDATOR_ADDRESS,
+        value: 0n,
+        callData,
+      },
+    ],
+    BigInt(KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID),
+    STUB_ECDSA_SIGNATURE,
+  );
+  const hash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
+  if (!hash) {
+    throw new Error('Failed to get hash');
+  }
+  try {
+    const signature = await signMessageAsync({
+      message: {
+        raw: hash,
+      },
+    });
+    op.signature = signature;
+    await submitOp(accountAddress.value, bundlerClient, op);
+    return hash;
+  } catch {
+    return null;
+  }
+}
+
+const countResult = useReadContract({
+  address: COUNTER_ADDRESS,
+  abi: counterAbi,
+  functionName: 'counts',
+  args: [ecdsaValidatorStorageAddress],
+});
+watch(ecdsaValidatorStorageAddress, () => {
+  countResult.refetch();
+});
+const count = computed(() => countResult.data.value);
+const increaseTxHash = ref<Hex | null>(null);
+async function handleIncrease(): Promise<void> {
+  isPending.value = true;
+  const hash = await sendCounterOp(true);
+  if (!hash) {
+    isPending.value = false;
+    return;
+  }
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(bundlerRpc),
+  });
+  const txHash = await getOpTxHash(bundlerClient, hash);
+  isPending.value = false;
+  increaseTxHash.value = txHash;
+  countResult.refetch();
+}
+const decreaseTxHash = ref<Hex | null>(null);
+async function handleDecrease(): Promise<void> {
+  isPending.value = true;
+  const hash = await sendCounterOp(false);
+  if (!hash) {
+    isPending.value = false;
+    return;
+  }
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(bundlerRpc),
+  });
+  const txHash = await getOpTxHash(bundlerClient, hash);
+  isPending.value = false;
+  decreaseTxHash.value = txHash;
+  countResult.refetch();
+}
+async function sendCounterOp(increase: boolean): Promise<Hex | null> {
+  if (!accountAddress.value) {
+    return null;
+  }
+  if (!sessionAccount.value) {
+    return null;
+  }
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(bundlerRpc),
+  });
+  const paymasterClient = createPaymasterClient({
+    transport: http(paymasterRpc),
+  });
+  const op = await prepareOp(
+    accountAddress.value,
+    bundlerClient,
+    paymasterClient,
+    [
+      {
+        target: COUNTER_ADDRESS,
+        value: 0n,
+        callData: encodeFunctionData({
+          abi: counterAbi,
+          functionName: increase ? 'increase' : 'decrease',
+        }),
+      },
+    ],
+    BigInt(KERNEL_V3_SESSION_KEY_VALIDATOR_ID),
+    encodeSessionSignature(permissionId.value, STUB_ECDSA_SIGNATURE),
+  );
+  const hash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
+  if (!hash) {
+    throw new Error('Failed to get hash');
+  }
+  if (!sessionAccount.value.signMessage) {
+    throw new Error('Session account does not support signMessage');
+  }
+  const signature = await sessionAccount.value.signMessage({
+    message: {
+      raw: hash,
+    },
+  });
+  op.signature = encodeSessionSignature(permissionId.value, signature);
+  await submitOp(accountAddress.value, bundlerClient, op);
+  return hash;
+}
 
 const isDialogConnectorsOpen = ref(false);
 function openConnectorDialog(): void {
@@ -392,6 +799,7 @@ async function sendUserOp(): Promise<null | Hex> {
     paymasterClient,
     executions,
     nonceKey,
+    STUB_ECDSA_SIGNATURE,
   );
   const hash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
   if (!hash) {
@@ -480,7 +888,8 @@ function getBlockExplorerTxUrl(hash: Hex): string {
   text-decoration: none;
 }
 
-.account {
+.account,
+.sessions {
   display: flex;
   flex-direction: column;
   gap: 8px;

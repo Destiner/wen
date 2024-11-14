@@ -88,6 +88,7 @@ async function prepareOp(
   paymasterClient: PaymasterClient,
   executions: Execution[],
   nonceKey: bigint,
+  stubSignature: Hex,
 ): Promise<Op_0_7> {
   const execMode =
     '0x0100000000000000000000000000000000000000000000000000000000000000';
@@ -137,12 +138,13 @@ async function prepareOp(
     maxPriorityFeePerGas,
     nonce,
     sender: ownerAddress,
-    signature: STUB_ECDSA_SIGNATURE,
+    signature: stubSignature,
   });
 
   const callGasLimit = userOperationGasResult.callGasLimit;
   const verificationGasLimit = userOperationGasResult.verificationGasLimit;
-  const preVerificationGas = userOperationGasResult.preVerificationGas;
+  const preVerificationGas =
+    (userOperationGasResult.preVerificationGas * 11n) / 10n;
 
   const { paymasterPostOpGasLimit, paymasterVerificationGasLimit } =
     await paymasterClient.getPaymasterStubData({
@@ -264,5 +266,5 @@ async function getOpTxHash(
   }
 }
 
-export { prepareOp, getOpHash, submitOp, getOpTxHash };
+export { prepareOp, getOpHash, submitOp, getOpTxHash, STUB_ECDSA_SIGNATURE };
 export type { Execution };
