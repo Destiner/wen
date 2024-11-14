@@ -44,10 +44,8 @@ interface Execution {
   callData: Hex;
 }
 
-// Fix: make it dynamic
-const callGasLimit = 1000000n;
-const verificationGasLimit = 1000000n;
-const preVerificationGas = 100000n;
+const STUB_ECDSA_SIGNATURE =
+  '0xfffffffffffffffffffffffffffffff0000000000000000000000000000000007aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1c';
 
 const publicClient = createPublicClient({
   chain: odysseyTestnet,
@@ -153,6 +151,7 @@ function getOpHash(chain: number, entryPoint: Address, op: Op_0_7): Hex | null {
 
 async function prepareOp(
   ownerAddress: Address,
+  bundlerClient: BundlerClient,
   paymasterClient: PaymasterClient | null,
   executions: Execution[],
   nonceKey: bigint,
@@ -197,6 +196,20 @@ async function prepareOp(
 
   const { maxFeePerGas, maxPriorityFeePerGas } =
     await publicClient.estimateFeesPerGas();
+
+  const userOperationGasResult = await bundlerClient.estimateUserOperationGas({
+    entryPointAddress: entryPoint07Address,
+    callData,
+    maxFeePerGas,
+    maxPriorityFeePerGas,
+    nonce,
+    sender: ownerAddress,
+    signature: STUB_ECDSA_SIGNATURE,
+  });
+
+  const callGasLimit = userOperationGasResult.callGasLimit;
+  const verificationGasLimit = userOperationGasResult.verificationGasLimit;
+  const preVerificationGas = userOperationGasResult.preVerificationGas;
 
   let paymasterPostOpGasLimit: bigint | undefined;
   let paymasterVerificationGasLimit: bigint | undefined;
@@ -280,6 +293,8 @@ async function submitOp(
   const gasFees = op.gasFees;
   const maxPriorityFeePerGas = BigInt(slice(gasFees, 0, 16));
   const maxFeePerGas = BigInt(slice(gasFees, 16, 32));
+  const callGasLimit = BigInt(slice(op.accountGasLimits, 16, 32));
+  const verificationGasLimit = BigInt(slice(op.accountGasLimits, 0, 16));
   const paymaster =
     size(op.paymasterAndData) > 0
       ? slice(op.paymasterAndData, 0, 20)
@@ -301,7 +316,7 @@ async function submitOp(
     callData: op.callData,
     callGasLimit,
     verificationGasLimit,
-    preVerificationGas,
+    preVerificationGas: op.preVerificationGas,
     maxPriorityFeePerGas,
     maxFeePerGas,
     signature: op.signature,

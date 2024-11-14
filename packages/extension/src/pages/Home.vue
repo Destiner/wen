@@ -247,7 +247,20 @@ async function enableSessionKeyModule(): Promise<void> {
   const execution = await getEnableSmartSessionModuleExecution(
     walletAddress.value,
   );
-  const op = await prepareOp(walletAddress.value, null, [execution], nonceKey);
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
+  });
+  const op = await prepareOp(
+    walletAddress.value,
+    bundlerClient,
+    null,
+    [execution],
+    nonceKey,
+  );
   const opHash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
   if (!opHash) {
     return;
@@ -257,14 +270,6 @@ async function enableSessionKeyModule(): Promise<void> {
     return;
   }
   op.signature = signature;
-  // Submit op like a bundler
-  const bundlerClient = createBundlerClient({
-    client: createPublicClient({
-      chain: odysseyTestnet,
-      transport: http(),
-    }),
-    transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
-  });
   await submitOp(walletAddress.value, bundlerClient, op);
   await getOpTxHash(bundlerClient, opHash);
   balance.value = await getBalance(publicClient, {
@@ -284,7 +289,20 @@ async function disableSessionKeyModule(): Promise<void> {
   const execution = await getDisableSmartSessionModuleExecution(
     walletAddress.value,
   );
-  const op = await prepareOp(walletAddress.value, null, [execution], nonceKey);
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
+  });
+  const op = await prepareOp(
+    walletAddress.value,
+    bundlerClient,
+    null,
+    [execution],
+    nonceKey,
+  );
   const opHash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
   if (!opHash) {
     return;
@@ -295,14 +313,6 @@ async function disableSessionKeyModule(): Promise<void> {
     return;
   }
   op.signature = signature;
-  // Submit op like a bundler
-  const bundlerClient = createBundlerClient({
-    client: createPublicClient({
-      chain: odysseyTestnet,
-      transport: http(),
-    }),
-    transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
-  });
   await submitOp(walletAddress.value, bundlerClient, op);
   await getOpTxHash(bundlerClient, opHash);
   balance.value = await getBalance(publicClient, {

@@ -1185,7 +1185,20 @@ async function sendWalletCalls({
       callData: call.data,
     };
   });
-  const op = await prepareOp(from, paymasterClient, executions, 0n);
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
+  });
+  const op = await prepareOp(
+    from,
+    bundlerClient,
+    paymasterClient,
+    executions,
+    0n,
+  );
   const opHash = getOpHash(odysseyTestnet.id, entryPoint07Address, op);
   if (!opHash) {
     return null;
@@ -1195,13 +1208,6 @@ async function sendWalletCalls({
     return null;
   }
   op.signature = signature;
-  const bundlerClient = createBundlerClient({
-    client: createPublicClient({
-      chain: odysseyTestnet,
-      transport: http(),
-    }),
-    transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
-  });
   await submitOp(from, bundlerClient, op);
   return opHash;
 }
