@@ -368,6 +368,13 @@ async function sendUserOp(): Promise<null | Hex> {
   if (!accountAddress.value) {
     return null;
   }
+  const bundlerClient = createBundlerClient({
+    client: createPublicClient({
+      chain: odysseyTestnet,
+      transport: http(),
+    }),
+    transport: http(bundlerRpc),
+  });
   const paymasterClient = createPaymasterClient({
     transport: http(paymasterRpc),
   });
@@ -381,6 +388,7 @@ async function sendUserOp(): Promise<null | Hex> {
   const nonceKey = BigInt(KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID);
   const op = await prepareOp(
     accountAddress.value,
+    bundlerClient,
     paymasterClient,
     executions,
     nonceKey,
