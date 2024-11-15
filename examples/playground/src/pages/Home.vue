@@ -219,7 +219,7 @@
         </div>
         <div class="actions">
           <div
-            v-if="!isSessionEnabled"
+            v-if="areSessionKeysEnabled && !isSessionEnabled"
             class="action"
           >
             <div>
