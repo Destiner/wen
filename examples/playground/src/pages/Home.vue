@@ -515,6 +515,7 @@ const isSessionEnabled = computed(() => isSessionEnabledResult.data.value);
 const enableSessionTxHash = ref<Hex | null>(null);
 async function handleEnableSession(): Promise<void> {
   isPending.value = true;
+  enableSessionTxHash.value = null;
   const bundlerClient = createBundlerClient({
     client: createPublicClient({
       chain: odysseyTestnet,
@@ -626,6 +627,7 @@ const count = computed(() => countResult.data.value);
 const increaseTxHash = ref<Hex | null>(null);
 async function handleIncrease(): Promise<void> {
   isPending.value = true;
+  increaseTxHash.value = null;
   const hash = await sendCounterOp(true);
   if (!hash) {
     isPending.value = false;
@@ -646,6 +648,7 @@ async function handleIncrease(): Promise<void> {
 const decreaseTxHash = ref<Hex | null>(null);
 async function handleDecrease(): Promise<void> {
   isPending.value = true;
+  decreaseTxHash.value = null;
   const hash = await sendCounterOp(false);
   if (!hash) {
     isPending.value = false;
@@ -734,6 +737,7 @@ const isPending = ref(false);
 const txHash = ref<Hex | null>(null);
 async function handleSendTransactionClick(): Promise<void> {
   isPending.value = true;
+  txHash.value = null;
   try {
     const hash = await sendTransactionAsync({
       to: accountAddress.value,
@@ -750,6 +754,7 @@ const opHash = ref<Hex | null>(null);
 const opTxHash = ref<Hex | null>(null);
 async function handleSendUserOpClick(): Promise<void> {
   isPending.value = true;
+  opTxHash.value = null;
   const hash = await sendUserOp();
   if (!hash) {
     isPending.value = false;
