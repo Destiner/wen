@@ -906,10 +906,8 @@ function getBlockExplorerTxUrl(hash: Hex): string {
   flex-direction: column;
 
   .value {
-    overflow: hidden;
     color: var(--text-primary);
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-wrap: break-word;
   }
 
   &.invalid {
