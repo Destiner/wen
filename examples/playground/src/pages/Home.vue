@@ -181,7 +181,7 @@
         </div>
       </div>
       <div
-        v-if="isConnected"
+        v-if="isConnected && isValidOwner"
         class="card"
       >
         <div class="sessions">
