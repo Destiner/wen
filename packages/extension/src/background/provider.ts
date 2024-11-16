@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from '@lukeed/uuid';
 import {
   Address,
   createPublicClient,
@@ -615,7 +614,7 @@ async function allowRequestPermissions(id: string | number): Promise<void> {
     permissionRequest,
   ).map((permissionName) => {
     return {
-      id: uuidv4(),
+      id: crypto.randomUUID(),
       parentCapability: permissionName,
       invoker: origin as `https://${string}`,
       caveats: [

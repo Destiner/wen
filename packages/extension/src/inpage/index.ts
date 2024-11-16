@@ -4,7 +4,6 @@
  */
 import type { Duplex } from 'node:stream';
 
-import { v4 as uuidv4 } from '@lukeed/uuid';
 import { WindowPostMessageStream } from '@metamask/post-message-stream';
 import { type EIP1193Provider, announceProvider } from 'mipd';
 
@@ -35,7 +34,7 @@ function initializeProvider(): void {
       icon,
       name,
       rdns: 'sh.scope.wen',
-      uuid: uuidv4(),
+      uuid: crypto.randomUUID(),
     },
     provider: provider as EIP1193Provider,
   });
