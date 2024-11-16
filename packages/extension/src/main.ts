@@ -1,5 +1,3 @@
-import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query';
-import { WagmiPlugin } from '@wagmi/vue';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import { createWebHashHistory, createRouter } from 'vue-router';
@@ -15,7 +13,6 @@ import SendTransaction from '@/pages/requests/SendTransaction.vue';
 import SignTypedData from '@/pages/requests/SignTypedData.vue';
 import WalletCallsStatus from '@/pages/requests/WalletCallsStatus.vue';
 import WalletSendCalls from '@/pages/requests/WalletSendCalls.vue';
-import { config } from '@/wagmi';
 
 import App from './App.vue';
 
@@ -67,13 +64,7 @@ const router = createRouter({
 
 const pinia = createPinia();
 
-const queryClient = new QueryClient();
-
-const app = createApp(App)
-  .use(router)
-  .use(pinia)
-  .use(WagmiPlugin, { config })
-  .use(VueQueryPlugin, { queryClient });
+const app = createApp(App).use(router).use(pinia);
 
 app.mount('#app');
 
