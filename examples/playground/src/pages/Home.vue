@@ -73,8 +73,8 @@
                     delegateeAddress === KERNEL_V3_IMPLEMENTATION_LEGACY_ADDRESS
                   "
                 >
-                  {{ delegateeAddress }} (legacy Kernel V3, please delegate to
-                  {{ KERNEL_V3_IMPLEMENTATION_ADDRESS }})
+                  Legacy Kernel V3, please delegate to
+                  {{ KERNEL_V3_IMPLEMENTATION_ADDRESS }}
                 </template>
                 <template v-else-if="delegateeAddress">
                   {{ delegateeAddress }} (not supported, please delegate to
