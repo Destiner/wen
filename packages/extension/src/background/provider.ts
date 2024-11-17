@@ -452,31 +452,37 @@ async function getCallsStatus(
     }),
     transport: http(`https://public.pimlico.io/v2/${odysseyTestnet.id}/rpc`),
   });
-  const receiptResult = await bundlerClient.getUserOperationReceipt({
-    hash: identifier,
-  });
-  if (!receiptResult) {
+  try {
+    const receiptResult = await bundlerClient.getUserOperationReceipt({
+      hash: identifier,
+    });
+    if (!receiptResult) {
+      return {
+        status: 'PENDING',
+      };
+    }
+    return {
+      status: 'CONFIRMED',
+      receipts: [
+        {
+          logs: receiptResult.receipt.logs.map((log) => ({
+            address: log.address,
+            topics: log.topics,
+            data: log.data,
+          })),
+          status: receiptResult.receipt.status === 'success' ? '0x1' : '0x0',
+          blockHash: receiptResult.receipt.blockHash,
+          blockNumber: toHex(receiptResult.receipt.blockNumber),
+          gasUsed: toHex(receiptResult.receipt.gasUsed),
+          transactionHash: receiptResult.receipt.transactionHash,
+        },
+      ],
+    };
+  } catch {
     return {
       status: 'PENDING',
     };
   }
-  return {
-    status: 'CONFIRMED',
-    receipts: [
-      {
-        logs: receiptResult.receipt.logs.map((log) => ({
-          address: log.address,
-          topics: log.topics,
-          data: log.data,
-        })),
-        status: receiptResult.receipt.status === 'success' ? '0x1' : '0x0',
-        blockHash: receiptResult.receipt.blockHash,
-        blockNumber: toHex(receiptResult.receipt.blockNumber),
-        gasUsed: toHex(receiptResult.receipt.gasUsed),
-        transactionHash: receiptResult.receipt.transactionHash,
-      },
-    ],
-  };
 }
 
 async function showCallsStatus(
