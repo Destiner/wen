@@ -125,188 +125,24 @@
             </div>
           </template>
         </div>
-        <div class="actions">
-          <div class="action">
-            <div>
-              <PlayButton
-                type="secondary"
-                :disabled="!isValidOwner || isPending"
-                @click="handleSendTransactionClick"
-              >
-                Send transaction
-              </PlayButton>
-            </div>
-            <div>
-              <div
-                v-if="txHash"
-                class="action-result"
-              >
-                Sent
-                <a
-                  :href="getBlockExplorerTxUrl(txHash)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <IconArrowTopRight class="icon" />
-                </a>
-              </div>
-            </div>
-          </div>
-          <div class="action">
-            <div>
-              <PlayButton
-                type="secondary"
-                :disabled="!isValidOwner || isPending"
-                @click="handleSendUserOpClick"
-              >
-                Send user operation
-              </PlayButton>
-            </div>
-            <div>
-              <div
-                v-if="opTxHash"
-                class="action-result"
-              >
-                Sent
-                <a
-                  :href="getBlockExplorerTxUrl(opTxHash)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <IconArrowTopRight class="icon" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
-      <div
-        v-if="isConnected && isValidOwner"
-        class="card"
-      >
-        <div class="sessions">
-          <div
-            v-if="isValidOwner"
-            class="data-row"
-            :class="{ invalid: !areSessionKeysEnabled }"
-          >
-            <div class="label">Session Keys</div>
-            <div class="value">
-              <template v-if="areSessionKeysEnabled">Enabled</template>
-              <template v-else>Disabled</template>
-            </div>
-          </div>
-          <div
-            v-if="areSessionKeysEnabled"
-            class="data-row"
-            :class="{ invalid: !isSessionEnabled }"
-          >
-            <div class="label">Active Session</div>
-            <div class="value">
-              <template v-if="isSessionEnabled">Enabled</template>
-              <template v-else>Disabled</template>
-            </div>
-          </div>
-          <div
-            v-if="isSessionEnabled"
-            class="data-row"
-          >
-            <div class="label">Count</div>
-            <div class="value">
-              {{ count }}
-            </div>
-          </div>
-        </div>
-        <div class="actions">
-          <div
-            v-if="areSessionKeysEnabled && !isSessionEnabled"
-            class="action"
-          >
-            <div>
-              <PlayButton
-                type="secondary"
-                :disabled="!isValidOwner || isPending"
-                @click="handleEnableSession"
-              >
-                Enable session
-              </PlayButton>
-            </div>
-            <div>
-              <div
-                v-if="enableSessionTxHash"
-                class="action-result"
-              >
-                Sent
-                <a
-                  :href="getBlockExplorerTxUrl(enableSessionTxHash)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <IconArrowTopRight class="icon" />
-                </a>
-              </div>
-            </div>
-          </div>
-          <div
-            v-if="isSessionEnabled"
-            class="action"
-          >
-            <div>
-              <PlayButton
-                type="secondary"
-                :disabled="!isValidOwner || isPending"
-                @click="handleIncrease"
-              >
-                Increase
-              </PlayButton>
-            </div>
-            <div>
-              <div
-                v-if="increaseTxHash"
-                class="action-result"
-              >
-                Sent
-                <a
-                  :href="getBlockExplorerTxUrl(increaseTxHash)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <IconArrowTopRight class="icon" />
-                </a>
-              </div>
-            </div>
-          </div>
-          <div
-            v-if="isSessionEnabled"
-            class="action"
-          >
-            <div>
-              <PlayButton
-                type="secondary"
-                :disabled="!isValidOwner || isPending"
-                @click="handleDecrease"
-              >
-                Decrease
-              </PlayButton>
-            </div>
-            <div>
-              <div
-                v-if="decreaseTxHash"
-                class="action-result"
-              >
-                Sent
-                <a
-                  :href="getBlockExplorerTxUrl(decreaseTxHash)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <IconArrowTopRight class="icon" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <CardActions
+        :is-valid-owner="isValidOwner"
+        :is-pending="isPending"
+        :tx-hash="txHash"
+        :op-tx-hash="opTxHash"
+        :are-session-keys-enabled="areSessionKeysEnabled"
+        :is-session-enabled="isSessionEnabled"
+        :count="count"
+        :enable-session-tx-hash="enableSessionTxHash"
+        :increase-tx-hash="increaseTxHash"
+        :decrease-tx-hash="decreaseTxHash"
+        @send-transaction="handleSendTransactionClick"
+        @send-user-op="handleSendUserOpClick"
+        @enable-session="handleEnableSession"
+        @increase="handleIncrease"
+        @decrease="handleDecrease"
+      />
     </div>
   </div>
   <DialogConnectors
@@ -330,7 +166,6 @@ import {
 import {
   Account,
   Address,
-  concat,
   createPublicClient,
   encodeFunctionData,
   getAbiItem,
@@ -354,8 +189,8 @@ import counterAbi from '@/abi/counter';
 import kernelMultiChainValidatorAbi from '@/abi/kernelMultiChainValidator';
 import kernelV3ImplementationAbi from '@/abi/kernelV3Implementation';
 import smartSessionModuleAbi from '@/abi/smartSessionModule';
+import CardActions from '@/components/CardActions.vue';
 import DialogConnectors from '@/components/DialogConnectors.vue';
-import IconArrowTopRight from '@/components/IconArrowTopRight.vue';
 import PlayButton from '@/components/PlayButton.vue';
 import useEnv from '@/composables/useEnv';
 import {
@@ -366,6 +201,17 @@ import {
   prepareOp,
   submitOp,
 } from '@/utils/aa';
+import {
+  COUNTER_ADDRESS,
+  ECDSA_SIGNER_ADDRESS,
+  KERNEL_V3_IMPLEMENTATION_ADDRESS,
+  KERNEL_V3_IMPLEMENTATION_LEGACY_ADDRESS,
+  KERNEL_V3_MULTI_CHAIN_VALIDATOR_ADDRESS,
+  KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID,
+  KERNEL_V3_SESSION_KEY_VALIDATOR_ID,
+  SMART_SESSION_VALIDATOR_ADDRESS,
+  YES_POLICY_ADDRESS,
+} from '@/utils/consts';
 import {
   encodeSessionSignature,
   getEnableSessionsCallData,
@@ -383,28 +229,6 @@ const { connect } = useConnect();
 const { disconnect } = useDisconnect();
 const { sendTransactionAsync } = useSendTransaction();
 const { signMessageAsync } = useSignMessage();
-
-const KERNEL_V3_IMPLEMENTATION_LEGACY_ADDRESS =
-  '0x94f097e1ebeb4eca3aae54cabb08905b239a7d27';
-const KERNEL_V3_IMPLEMENTATION_ADDRESS =
-  '0x21523eaa06791d2524eb2788af8aa0e1cfbb61b7';
-const KERNEL_V3_MULTI_CHAIN_VALIDATOR_ADDRESS =
-  '0x02d32f9c668c92a60b44825c4f79b501c0f685da';
-const KERNEL_V3_MULTI_CHAIN_VALIDATOR_ID = concat([
-  '0x01',
-  KERNEL_V3_MULTI_CHAIN_VALIDATOR_ADDRESS,
-]);
-const SMART_SESSION_VALIDATOR_ADDRESS =
-  '0x4988c01c4a1b8bd32e40ecc7561a7669a6cc8295';
-const KERNEL_V3_SESSION_KEY_VALIDATOR_ID = concat([
-  '0x00',
-  '0x01',
-  SMART_SESSION_VALIDATOR_ADDRESS,
-  '0x0000',
-]);
-const ECDSA_SIGNER_ADDRESS = '0xfbA60af059386F7947b3a240442040AeE058A361';
-const COUNTER_ADDRESS = '0x73592f5DDc3065dc85F1dE4F835F82937ff2adAc';
-const YES_POLICY_ADDRESS = '0x06034a446BB858edd06dd0F12c771A8Ac6058AFD';
 
 const isConnected = computed(() => connectedAccount.isConnected.value);
 const accountAddress = computed(() => connectedAccount.address.value);
@@ -831,12 +655,6 @@ async function sendUserOp(): Promise<null | Hex> {
     return null;
   }
 }
-
-function getBlockExplorerTxUrl(hash: Hex): string {
-  const chain = odysseyTestnet;
-  const explorerUrl = chain.blockExplorers.default.url;
-  return `${explorerUrl}/tx/${hash}`;
-}
 </script>
 
 <style scoped>
@@ -846,12 +664,13 @@ function getBlockExplorerTxUrl(hash: Hex): string {
   justify-content: center;
   min-height: 100vh;
   margin: 32px 16px;
+  margin-top: 32px;
 }
 
 @media (width >= 768px) {
   .page {
-    align-items: center;
     margin: 0;
+    margin-top: 96px;
   }
 }
 
