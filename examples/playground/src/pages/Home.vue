@@ -131,6 +131,9 @@
         :is-pending="isPending"
         :tx-hash="txHash"
         :op-tx-hash="opTxHash"
+        :capabilities="capabilities"
+        :call-identifier="callIdentifier"
+        :call-status="callStatus"
         :are-session-keys-enabled="areSessionKeysEnabled"
         :is-session-enabled="isSessionEnabled"
         :count="count"
@@ -139,6 +142,10 @@
         :decrease-tx-hash="decreaseTxHash"
         @send-transaction="handleSendTransactionClick"
         @send-user-op="handleSendUserOpClick"
+        @get-capabilities="handleGetCapabilities"
+        @send-calls="handleSendCalls"
+        @get-call-status="handleGetCallStatus"
+        @show-call-status="handleShowCallStatus"
         @enable-session="handleEnableSession"
         @increase="handleIncrease"
         @decrease="handleDecrease"
@@ -153,6 +160,13 @@
 
 <script setup lang="ts">
 import { useStorage } from '@vueuse/core';
+import {
+  GetCapabilitiesReturnType,
+  getCapabilities,
+  sendCalls,
+  getCallsStatus,
+  showCallsStatus,
+} from '@wagmi/core/experimental';
 import {
   Connector,
   useAccount,
@@ -183,6 +197,7 @@ import {
 } from 'viem/account-abstraction';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import { odysseyTestnet } from 'viem/chains';
+import { GetCallsStatusReturnType } from 'viem/experimental';
 import { computed, ref, watch } from 'vue';
 
 import counterAbi from '@/abi/counter';
@@ -218,6 +233,7 @@ import {
   getPermissionId,
   Permission,
 } from '@/utils/sessionKeys';
+import { config } from '@/wagmi';
 
 const { bundlerRpc, paymasterRpc } = useEnv();
 
@@ -286,6 +302,67 @@ const isValidOwner = computed(() => {
   }
   return validatorStorage.data.value === accountAddress.value;
 });
+
+const capabilities = ref<GetCapabilitiesReturnType | null>(null);
+async function handleGetCapabilities(): Promise<void> {
+  isPending.value = true;
+  capabilities.value = null;
+  if (!accountAddress.value) {
+    return;
+  }
+  const result = await getCapabilities(config, {
+    account: accountAddress.value,
+  });
+  capabilities.value = result;
+  isPending.value = false;
+}
+
+const callIdentifier = ref<string | null>(null);
+async function handleSendCalls(): Promise<void> {
+  isPending.value = true;
+  callIdentifier.value = null;
+  if (!accountAddress.value) {
+    return;
+  }
+  const result = await sendCalls(config, {
+    account: accountAddress.value,
+    calls: [
+      {
+        to: '0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa',
+        data: '0xdeadbeef',
+      },
+      {
+        to: '0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB',
+        data: '0xbeefdead',
+      },
+    ],
+  });
+  callIdentifier.value = result;
+  isPending.value = false;
+}
+const callStatus = ref<GetCallsStatusReturnType | null>(null);
+async function handleGetCallStatus(): Promise<void> {
+  isPending.value = true;
+  callStatus.value = null;
+  if (!callIdentifier.value) {
+    return;
+  }
+  const result = await getCallsStatus(config, {
+    id: callIdentifier.value,
+  });
+  callStatus.value = result;
+  isPending.value = false;
+}
+async function handleShowCallStatus(): Promise<void> {
+  isPending.value = true;
+  if (!callIdentifier.value) {
+    return;
+  }
+  await showCallsStatus(config, {
+    id: callIdentifier.value,
+  });
+  isPending.value = false;
+}
 
 const isSmartSessionModuleInstalled = useReadContract({
   address: accountAddress,

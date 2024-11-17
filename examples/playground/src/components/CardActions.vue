@@ -15,6 +15,12 @@
       </TabsTrigger>
       <TabsTrigger
         class="trigger"
+        value="wallet"
+      >
+        Wallet Calls
+      </TabsTrigger>
+      <TabsTrigger
+        class="trigger"
         value="sessions"
       >
         Session Keys
@@ -74,6 +80,79 @@
               <IconArrowTopRight class="icon" />
             </a>
           </div>
+        </div>
+      </div>
+    </TabsContent>
+    <TabsContent
+      class="actions"
+      value="wallet"
+    >
+      <div class="action">
+        <div>
+          <PlayButton
+            type="secondary"
+            :disabled="!isValidOwner || isPending"
+            @click="handleGetCapabilities"
+          >
+            Get capabilities
+          </PlayButton>
+        </div>
+        <div>
+          <div
+            v-if="capabilities"
+            class="action-result json"
+          >
+            {{ formatJson(capabilities) }}
+          </div>
+        </div>
+      </div>
+      <div class="action">
+        <div>
+          <PlayButton
+            type="secondary"
+            :disabled="!isValidOwner || isPending"
+            @click="handleSendCalls"
+          >
+            Send calls
+          </PlayButton>
+        </div>
+        <div>
+          <div
+            v-if="callIdentifier"
+            class="action-result json"
+          >
+            {{ callIdentifier }}
+          </div>
+        </div>
+      </div>
+      <div class="action">
+        <div>
+          <PlayButton
+            type="secondary"
+            :disabled="!isValidOwner || isPending || !callIdentifier"
+            @click="handleGetCallStatus"
+          >
+            Get call status
+          </PlayButton>
+        </div>
+        <div>
+          <div
+            v-if="callStatus"
+            class="action-result json"
+          >
+            {{ formatJson(callStatus) }}
+          </div>
+        </div>
+      </div>
+      <div class="action">
+        <div>
+          <PlayButton
+            type="secondary"
+            :disabled="!isValidOwner || isPending || !callIdentifier"
+            @click="handleShowCallStatus"
+          >
+            Show call status
+          </PlayButton>
         </div>
       </div>
     </TabsContent>
@@ -211,6 +290,12 @@
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from 'radix-vue';
 import { Hex } from 'viem';
 import { odysseyTestnet } from 'viem/chains';
+import {
+  GetCallsStatusReturnType,
+  GetCapabilitiesReturnType,
+} from 'viem/experimental';
+
+import { formatJson } from '@/utils/formatters';
 
 import IconArrowTopRight from './IconArrowTopRight.vue';
 import PlayButton from './PlayButton.vue';
@@ -220,6 +305,11 @@ defineProps<{
   isPending: boolean;
   txHash: Hex | null;
   opTxHash: Hex | null;
+
+  capabilities: GetCapabilitiesReturnType | null;
+  callIdentifier: string | null;
+  callStatus: GetCallsStatusReturnType | null;
+
   areSessionKeysEnabled: boolean | undefined;
   isSessionEnabled: boolean | undefined;
   count: bigint;
@@ -231,6 +321,12 @@ defineProps<{
 const emit = defineEmits<{
   'send-transaction': [];
   'send-user-op': [];
+
+  'get-capabilities': [];
+  'send-calls': [];
+  'get-call-status': [];
+  'show-call-status': [];
+
   'enable-session': [];
   increase: [];
   decrease: [];
@@ -242,6 +338,22 @@ function handleSendTransactionClick(): void {
 
 function handleSendUserOpClick(): void {
   emit('send-user-op');
+}
+
+function handleGetCapabilities(): void {
+  emit('get-capabilities');
+}
+
+function handleSendCalls(): void {
+  emit('send-calls');
+}
+
+function handleGetCallStatus(): void {
+  emit('get-call-status');
+}
+
+function handleShowCallStatus(): void {
+  emit('show-call-status');
 }
 
 function handleEnableSession(): void {
@@ -385,6 +497,15 @@ function getBlockExplorerTxUrl(hash: Hex): string {
       font-family: Consolas, Inconsolata, monospace;
       font-size: 13px;
       gap: 4px;
+
+      &.json {
+        width: 100%;
+        overflow-x: auto;
+        color: var(--text-secondary);
+        font-family: 'Courier New', Courier, monospace;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+      }
 
       .icon {
         width: 16px;
