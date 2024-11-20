@@ -312,7 +312,7 @@ defineProps<{
 
   areSessionKeysEnabled: boolean | undefined;
   isSessionEnabled: boolean | undefined;
-  count: bigint;
+  count: bigint | undefined;
   enableSessionTxHash: Hex | null;
   increaseTxHash: Hex | null;
   decreaseTxHash: Hex | null;
