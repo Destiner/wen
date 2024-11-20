@@ -336,6 +336,11 @@ async function handleSendCalls(): Promise<void> {
         data: '0xbeefdead',
       },
     ],
+    capabilities: {
+      paymasterService: {
+        url: paymasterRpc,
+      },
+    },
   });
   callIdentifier.value = result;
   isPending.value = false;
