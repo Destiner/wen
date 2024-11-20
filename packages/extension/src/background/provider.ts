@@ -10,6 +10,7 @@ import {
   TypedData,
   TypedDataDefinition,
   TypedDataDomain,
+  WalletCapabilities,
   WalletCapabilitiesRecord,
   WalletGetCallsStatusReturnType,
   WalletPermission,
@@ -104,7 +105,7 @@ interface WalletCallRequestData {
   chainId: Hex;
   from: Address;
   calls: WalletCall[];
-  capabilities: WalletCapabilitiesRecord;
+  capabilities: WalletCapabilities;
 }
 
 type Response<T> =
@@ -1172,12 +1173,10 @@ async function sendWalletCalls({
   if (!walletState.mnemonic) {
     return null;
   }
-  const chainCapabilities =
-    capabilities && capabilities[toHex(odysseyTestnet.id)];
   const paymasterClient =
-    chainCapabilities && chainCapabilities.paymasterService
+    capabilities && capabilities.paymasterService
       ? createPaymasterClient({
-          transport: http(chainCapabilities.paymasterService.url),
+          transport: http(capabilities.paymasterService.url),
         })
       : null;
   const executions: Execution[] = (calls as WalletCall[]).map((call) => {
